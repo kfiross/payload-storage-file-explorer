@@ -1,49 +1,101 @@
-import type { CollectionSlug, Config } from 'payload'
+import type { CollectionSlug, Config, Endpoint } from 'payload'
 
-import { customEndpointHandler } from './endpoints/customEndpointHandler.js'
+import type  { S3ExplorerPluginOptions, StorageAdapterOptions } from './types/index.js'
+
+import {
+  makeDeleteHandler,
+  makeDownloadHandler,
+  makeFolderHandler,
+  makeListHandler,
+  makeUploadHandler,
+} from './endpoints/customEndpointHandlers.js'
 
 export type PayloadStorageFileExplorerConfig = {
+  adapterOptions: StorageAdapterOptions
   /**
-   * List of collections to add a custom field
+   * The admin route where the explorer will be mounted.
+   * @default '/explorer'
    */
-  collections?: Partial<Record<CollectionSlug, true>>
+  adminRoute?: string
   disabled?: boolean
+  /**
+   * Whether to allow deleting files from S3.
+   * @default true
+   */
+  enableDelete?: boolean
+  /**
+   * Whether to show file download / presigned URL button.
+   * @default true
+   */
+  enableDownload?: boolean
+
+  /**
+   * Whether to allow creating new "folders" (zero-byte prefix objects).
+   * @default true
+   */
+  enableFolderCreate?: boolean
+
+  /**
+   * Whether to allow uploading new files.
+   * @default true
+   */
+  enableUpload?: boolean
+
+
+  /**
+   * Max file size for uploads in bytes.
+   * @default 104857600 (100 MB)
+   */
+  maxUploadSize?: number
+
+  /**
+   * Label shown in the Payload admin sidebar navigation.
+   * @default 'File Explorer'
+   */
+  navigationLabel?: string
+
+  /**
+   * Presigned URL expiry in seconds for file downloads / previews.
+   * @default 3600
+   */
+  presignedUrlExpiry?: number
+
+  /**
+   * Optional root prefix to scope the explorer to a subfolder.
+   * E.g. 'media/' will start navigation inside s3://bucket/media/
+   * @default ''
+   */
+  rootPrefix?: string
 }
 
-export const payloadStorageFileExplorer =
-  (pluginOptions: PayloadStorageFileExplorerConfig) =>
-  (config: Config): Config => {
+const apiBasePath = '/api/s3-explorer'
+
+export const payloadStorageFileExplorer = (pluginOptions: PayloadStorageFileExplorerConfig) => {
+  return (config: Config): Config => {
+    const adminRoute = pluginOptions.adminRoute ?? '/explorer'
+
     if (!config.collections) {
       config.collections = []
     }
 
-    config.collections.push({
-      slug: 'plugin-collection',
-      fields: [
-        {
-          name: 'id',
-          type: 'text',
-        },
-      ],
-    })
 
-    if (pluginOptions.collections) {
-      for (const collectionSlug in pluginOptions.collections) {
-        const collection = config.collections.find(
-          (collection) => collection.slug === collectionSlug,
-        )
-
-        if (collection) {
-          collection.fields.push({
-            name: 'addedByPlugin',
-            type: 'text',
-            admin: {
-              position: 'sidebar',
-            },
-          })
-        }
-      }
-    }
+    // if (pluginOptions.collections) {
+    //   for (const collectionSlug in pluginOptions.collections) {
+    //     const collection = config.collections.find(
+    //       (collection) => collection.slug === collectionSlug,
+    //     )
+    //
+    //     if (collection) {
+    //       collection.fields.push({
+    //         name: 'addedByPlugin',
+    //         type: 'text',
+    //         admin: {
+    //           position: 'sidebar',
+    //         },
+    //       })
+    //     }
+    //   }
+    // }
 
     /**
      * If the plugin is disabled, we still want to keep added collections/fields so the database schema is consistent which is important for migrations.
@@ -65,22 +117,70 @@ export const payloadStorageFileExplorer =
       config.admin.components = {}
     }
 
-    if (!config.admin.components.beforeDashboard) {
-      config.admin.components.beforeDashboard = []
+    if (!config.admin.components.views) {
+      config.admin.components.views = {}
     }
 
-    config.admin.components.beforeDashboard.push(
-      `payload-storage-file-explorer/client#BeforeDashboardClient`,
-    )
-    config.admin.components.beforeDashboard.push(
-      `payload-storage-file-explorer/rsc#BeforeDashboardServer`,
-    )
+    if (!config.admin.custom) {
+      config.admin.custom = {}
+    }
 
-    config.endpoints.push({
-      handler: customEndpointHandler,
-      method: 'get',
-      path: '/my-plugin-endpoint',
-    })
+    config.admin.custom.s3FileExplorer = {
+      apiBasePath,
+      options: pluginOptions,
+    }
+
+    if(pluginOptions.adapterOptions.storageType === 's3') {
+      config.admin.components.views.s3FileExplorer = {
+        // Payload v3 resolves this as a module#exportName path.
+        // The RSC wrapper reads plugin options from config.custom
+        // so no secrets end up in the client bundle.
+        Component: 'payload-storage-file-explorer/rsc#S3ExplorerViewServer',
+        meta: {
+          description: `Browse S3 bucket: ${pluginOptions.adapterOptions.bucket}`,
+          title: pluginOptions.navigationLabel ?? 'File Explorer',
+        },
+        serverProps: {
+          apiBasePath,
+          options: pluginOptions,
+        },
+        //@ts-ignore
+        path: adminRoute,
+      }
+    }
+
+
+
+
+    const explorerEndpoints: Endpoint[] = [
+      {
+        handler: makeListHandler(pluginOptions),
+        method: 'get',
+        path: '/s3-explorer/list',
+      },
+      {
+        handler: makeDownloadHandler(pluginOptions),
+        method: 'get',
+        path: '/s3-explorer/download',
+      },
+      {
+        handler: makeUploadHandler(pluginOptions),
+        method: 'post',
+        path: '/s3-explorer/upload',
+      },
+      {
+        handler: makeFolderHandler(pluginOptions),
+        method: 'post',
+        path: '/s3-explorer/folder',
+      },
+      {
+        handler: makeDeleteHandler(pluginOptions),
+        method: 'delete',
+        path: '/s3-explorer/delete',
+      },
+    ]
+
+    config.endpoints.push(...explorerEndpoints)
 
     const incomingOnInit = config.onInit
 
@@ -89,25 +189,18 @@ export const payloadStorageFileExplorer =
       if (incomingOnInit) {
         await incomingOnInit(payload)
       }
-
-      const { totalDocs } = await payload.count({
-        collection: 'plugin-collection',
-        where: {
-          id: {
-            equals: 'seeded-by-plugin',
-          },
-        },
-      })
-
-      if (totalDocs === 0) {
-        await payload.create({
-          collection: 'plugin-collection',
-          data: {
-            id: 'seeded-by-plugin',
-          },
-        })
-      }
     }
 
     return config
   }
+}
+
+
+export function s3ExplorerPluginOptions(
+  options: S3ExplorerPluginOptions
+): S3ExplorerPluginOptions {
+  return {
+    ...options,
+  }
+}
+

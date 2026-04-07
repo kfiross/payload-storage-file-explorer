@@ -4,7 +4,7 @@ import config from '@payload-config'
 import { createPayloadRequest, getPayload } from 'payload'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 
-import { customEndpointHandler } from '../src/endpoints/customEndpointHandler.js'
+import { customEndpointHandlers } from '../src/endpoints/customEndpointHandlers.js'
 
 let payload: Payload
 
@@ -23,7 +23,7 @@ describe('Plugin integration tests', () => {
     })
 
     const payloadRequest = await createPayloadRequest({ config, request })
-    const response = await customEndpointHandler(payloadRequest)
+    const response = await customEndpointHandlers(payloadRequest)
     expect(response.status).toBe(200)
 
     const data = await response.json()

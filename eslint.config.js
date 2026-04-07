@@ -27,6 +27,7 @@ export default [
   {
     rules: {
       'no-restricted-exports': 'off',
+      'jsx-a11y/click-events-have-key-events': 'off',
     },
   },
   {
