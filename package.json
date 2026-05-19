@@ -60,6 +60,7 @@
     "test:int": "vitest"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.30.0",
     "@aws-sdk/client-s3": "^3.1025.0",
     "@aws-sdk/s3-presigned-post": "^3.1025.0",
     "@aws-sdk/s3-request-presigner": "^3.1025.0",
@@ -110,6 +111,7 @@
     "pnpm": "^9 || ^10"
   },
   "publishConfig": {
+    "access": "public",
     "exports": {
       ".": {
         "import": "./dist/index.js",
