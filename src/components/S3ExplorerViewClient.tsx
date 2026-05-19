@@ -865,7 +865,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
         return
       }
       const name = filenameFromKey(file.key, prefix)
-      setPreview({ name, key: file.key, lastModified: file.lastModified.toLocaleDateString(), size: file.size })
+      setPreview({ name, key: file.key, lastModified: file.lastModified?.toString(), size: file.size })
       try {
         const res = await fetch(`${apiBasePath}/download?key=${encodeURIComponent(file.key)}`)
         const json = await res.json()

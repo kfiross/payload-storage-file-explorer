@@ -133,7 +133,7 @@ export const payloadStorageFileExplorer = (pluginOptions: PayloadStorageFileExpl
         // Payload v3 resolves this as a module#exportName path.
         // The RSC wrapper reads plugin options from config.custom
         // so no secrets end up in the client bundle.
-        Component: 'payload-storage-file-explorer/rsc#S3ExplorerViewServer',
+        Component: '@kfiross44/payload-storage-file-explorer/rsc#S3ExplorerViewServer',
         meta: {
           description: `Browse S3 bucket: ${pluginOptions.adapterOptions.bucket}`,
           title: pluginOptions.navigationLabel ?? 'File Explorer',
