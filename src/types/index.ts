@@ -56,7 +56,7 @@ export interface S3Object {
 
 export interface S3Folder {
   isFolder: true
-  lastModified: Date
+  lastModified?: Date
   name: string
   prefix: string
   size?: number

@@ -542,9 +542,10 @@ function CreateFolderDrawerBody({
         (label, error highlight, focus ring, dark-mode support) automatically.
       */}
       <TextInput
+        // @ts-ignore
         error={fieldError ?? undefined}
         label="Folder name"
-        onChange={(e) => {
+        onChange={(e: any) => {
           setName(e.target.value)
           if (fieldError) {
             setFieldError(null)
@@ -690,26 +691,37 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
   }
 
   const sortedItems = (): S3Item[] => {
-    const folders = [...(listing?.folders ?? [])]
-    const files = [...(listing?.files ?? [])]
-    const cmp = (a: S3Item, b: S3Item): number => {
-      let av: number | string = '',
-        bv: number | string = ''
-      if (sortField === 'name') {
-        av = a.isFolder ? a.name : filenameFromKey(a.key, prefix)
-        bv = b.isFolder ? b.name : filenameFromKey(b.key, prefix)
-      } else if (sortField === 'size') {
-        av = a.isFolder ? -1 : a.size
-        bv = b.isFolder ? -1 : b.size
-      } else {
-        av = a.isFolder ? '' : a.lastModified
-        bv = b.isFolder ? '' : b.lastModified
-      }
-      const r = av < bv ? -1 : av > bv ? 1 : 0
-      return sortDir === 'asc' ? r : -r
+  const folders = [...(listing?.folders ?? [])]
+  const files = [...(listing?.files ?? [])]
+
+  const cmp = (a: S3Item, b: S3Item): number => {
+    let r = 0
+
+    if (sortField === 'name') {
+      const av = a.isFolder ? a.name : filenameFromKey(a.key, prefix)
+      const bv = b.isFolder ? b.name : filenameFromKey(b.key, prefix)
+      r = av.localeCompare(bv)
+    } else if (sortField === 'size') {
+      // Folders don't have size, default to 0 if missing, though cmp only runs folder-to-folder or file-to-file here
+      const av = a.size ?? 0
+      const bv = b.size ?? 0
+      r = av - bv
+    } else if (sortField === 'lastModified') {
+      const av = a.lastModified ?? ''
+      const bv = b.lastModified ?? ''
+      
+      // Handle Date objects or strings safely
+      const t1 = av instanceof Date ? av.getTime() : String(av)
+      const t2 = bv instanceof Date ? bv.getTime() : String(bv)
+      
+      r = t1 < t2 ? -1 : t1 > t2 ? 1 : 0
     }
-    return [...folders.sort(cmp), ...files.sort(cmp)]
+
+    return sortDir === 'asc' ? r : -r
   }
+
+  return [...folders.sort(cmp), ...files.sort(cmp)]
+}
 
   // ─── Upload ───────────────────────────────────────────────────────────────
 
@@ -853,7 +865,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
         return
       }
       const name = filenameFromKey(file.key, prefix)
-      setPreview({ name, key: file.key, lastModified: file.lastModified, size: file.size })
+      setPreview({ name, key: file.key, lastModified: file.lastModified.toLocaleDateString(), size: file.size })
       try {
         const res = await fetch(`${apiBasePath}/download?key=${encodeURIComponent(file.key)}`)
         const json = await res.json()
@@ -1026,9 +1038,9 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
             buttonStyle="secondary"
             onClick={() => void fetchListing(prefix)}
             size="medium"
-            title="Refresh"
           >
             <Icon.Refresh />
+            &nbsp;Refresh
           </Button>
         </div>
       </div>
@@ -1070,6 +1082,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
                 buttonStyle="primary"
                 onClick={() => setDeleteModal({ type: 'bulk', key: '' })}
                 size="small"
+                //@ts-ignore
                 style={{
                   borderColor: 'var(--theme-error-300, #fca5a5)',
                   color: 'var(--theme-error-500, #ef4444)',
@@ -1171,7 +1184,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
 
           {/* LIST VIEW */}
           {!loading && !error && viewMode === 'list' && (
-            <div className={{ flex: 1 }}>
+            <div style={{ flex: 1 }}>
               <div style={S.tableHeader}>
                 <div style={{ flexShrink: 0, width: 28 }}>
                   <button
@@ -1708,7 +1721,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
               {deleteModal.type === 'bulk'
                 ? `Permanently delete ${selected.size} selected file${selected.size !== 1 ? 's' : ''}? This cannot be undone.`
                 : deleteModal.type === 'folder'
-                  ? `Delete folder "${folderNameFromKey(deleteModal.key, prefix)}" and *ALL* its contents? This cannot be undone.`
+                  ? `Delete folder "${folderNameFromKey(deleteModal.key)}" and *ALL* its contents? This cannot be undone.`
                   : `Delete "${filenameFromKey(deleteModal.key, prefix)}"? This cannot be undone.`}
             </p>
             <div style={S.modalActions}>

@@ -101,7 +101,7 @@ export async function listS3Objects(
 
   const response = await client.send(command)
 
-  const foldersSizesPromises: Promise<{ lastModified: Date; size: number }>[] = []
+  const foldersSizesPromises: Promise<{ lastModified?: Date; size: number }>[] = []
   const foldersNames = response.CommonPrefixes ?? []
   for (const folder of foldersNames) {
     console.log('folder.Prefix=', folder.Prefix!)
