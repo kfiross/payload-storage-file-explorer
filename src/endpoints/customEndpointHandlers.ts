@@ -35,12 +35,14 @@ function json<T>(data: T, status = 200): Response {
  * GET /api/s3-explorer/list?prefix=some/path/&token=<continuationToken>
  * Returns { success, data: S3ListResult }
  */
-export function makeListHandler({ adapterOptions, ...options }: PayloadStorageFileExplorerConfig): PayloadHandler {
+export function makeListHandler({
+  adapterOptions,
+  ...options
+}: PayloadStorageFileExplorerConfig): PayloadHandler {
   return async (req) => {
-    if(adapterOptions.storageType !== 's3') {
+    if (adapterOptions.storageType !== 's3') {
       throw new Error(`storageType '${adapterOptions.storageType}' is not supported `)
     }
-
 
     try {
       const url = new URL(req.url!)
@@ -52,11 +54,19 @@ export function makeListHandler({ adapterOptions, ...options }: PayloadStorageFi
       const safePrefix = prefix.startsWith(rootPrefix) ? prefix : rootPrefix
 
       const client = createS3Client(adapterOptions)
-      const result = await listS3Objects(client, adapterOptions.bucket, safePrefix, continuationToken)
+      const result = await listS3Objects(
+        client,
+        adapterOptions.bucket,
+        safePrefix,
+        continuationToken,
+      )
 
       return json({ data: result, success: true })
     } catch (err: unknown) {
-      return json({ error: err instanceof Error ? err.message : 'Unknown error', success: false }, 500)
+      return json(
+        { error: err instanceof Error ? err.message : 'Unknown error', success: false },
+        500,
+      )
     }
   }
 }
@@ -68,9 +78,12 @@ export function makeListHandler({ adapterOptions, ...options }: PayloadStorageFi
  * Body: { prefix, filename, contentType }
  * Returns { success, data: { url, fields, key } }  — client POSTs directly to S3.
  */
-export function makeUploadHandler({ adapterOptions, ...options }: PayloadStorageFileExplorerConfig): PayloadHandler {
+export function makeUploadHandler({
+  adapterOptions,
+  ...options
+}: PayloadStorageFileExplorerConfig): PayloadHandler {
   return async (req) => {
-    if(adapterOptions.storageType !== 's3') {
+    if (adapterOptions.storageType !== 's3') {
       throw new Error(`storageType '${adapterOptions.storageType}' is not supported `)
     }
 
@@ -81,7 +94,11 @@ export function makeUploadHandler({ adapterOptions, ...options }: PayloadStorage
     try {
       // Payload v3 exposes the parsed body via req.json()
       // @ts-ignore
-      const body = (await req.json()) as { contentType?: string; filename?: string; prefix?: string }
+      const body = (await req.json()) as {
+        contentType?: string
+        filename?: string
+        prefix?: string
+      }
       const { filename, prefix = '' } = body
 
       if (!filename) {
@@ -101,7 +118,10 @@ export function makeUploadHandler({ adapterOptions, ...options }: PayloadStorage
 
       return json({ data: result, success: true })
     } catch (err: unknown) {
-      return json({ error: err instanceof Error ? err.message : 'Unknown error', success: false }, 500)
+      return json(
+        { error: err instanceof Error ? err.message : 'Unknown error', success: false },
+        500,
+      )
     }
   }
 }
@@ -113,7 +133,10 @@ export function makeUploadHandler({ adapterOptions, ...options }: PayloadStorage
  * Body: { key } for a single file  OR  { prefix } for an entire folder (recursive).
  * Returns { success, data: { key } | { deleted: number } }
  */
-export function makeDeleteHandler({ adapterOptions, ...options }: PayloadStorageFileExplorerConfig): PayloadHandler {
+export function makeDeleteHandler({
+  adapterOptions,
+  ...options
+}: PayloadStorageFileExplorerConfig): PayloadHandler {
   return async (req) => {
     if (adapterOptions.storageType !== 's3') {
       throw new Error(`storageType '${adapterOptions.storageType}' is not supported `)
@@ -160,7 +183,10 @@ export function makeDeleteHandler({ adapterOptions, ...options }: PayloadStorage
  * Body: { prefix, name }
  * Returns { success, data: { folderKey } }
  */
-export function makeFolderHandler({ adapterOptions, ...options }: PayloadStorageFileExplorerConfig): PayloadHandler {
+export function makeFolderHandler({
+  adapterOptions,
+  ...options
+}: PayloadStorageFileExplorerConfig): PayloadHandler {
   if (adapterOptions.storageType !== 's3') {
     throw new Error(`storageType '${adapterOptions.storageType}' is not supported `)
   }
@@ -207,8 +233,10 @@ export function makeFolderHandler({ adapterOptions, ...options }: PayloadStorage
  * GET /api/s3-explorer/download?key=some/path/file.jpg
  * Returns { success, data: { url, key } }  — presigned GET URL.
  */
-export function makeDownloadHandler({adapterOptions, ...options }: PayloadStorageFileExplorerConfig): PayloadHandler {
-
+export function makeDownloadHandler({
+  adapterOptions,
+  ...options
+}: PayloadStorageFileExplorerConfig): PayloadHandler {
   return async (req) => {
     if (adapterOptions.storageType !== 's3') {
       throw new Error(`storageType '${adapterOptions.storageType}' is not supported `)

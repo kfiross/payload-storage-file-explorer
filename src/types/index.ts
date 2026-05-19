@@ -1,12 +1,8 @@
-export type StorageFileExplorerAdapterOptions<
-  T extends string = string
-> = {
+export type StorageFileExplorerAdapterOptions<T extends string = string> = {
   storageType: T
 }
 
-export type StorageAdapterOptions =
-  | S3ExplorerPluginOptions
-  | VercelBlobExplorerOptions
+export type StorageAdapterOptions = S3ExplorerPluginOptions | VercelBlobExplorerOptions
 
 type VercelBlobExplorerOptions = StorageFileExplorerAdapterOptions<'vercel'>
 
@@ -30,12 +26,10 @@ export interface S3ExplorerPluginOptions extends StorageFileExplorerAdapterOptio
     sessionToken?: string
   }
 
-
   /**
    * Custom endpoint — useful for MinIO, LocalStack, etc.
    */
   endpoint?: string
-
 
   /**
    * Force path-style URLs (required for MinIO / LocalStack).
@@ -48,8 +42,7 @@ export interface S3ExplorerPluginOptions extends StorageFileExplorerAdapterOptio
    */
   region: string
 
-
-  storageType: 's3',
+  storageType: 's3'
 }
 
 export interface S3Object {
@@ -67,7 +60,6 @@ export interface S3Folder {
   name: string
   prefix: string
   size?: number
-
 }
 
 export type S3Item = S3Folder | S3Object

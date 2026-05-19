@@ -1,6 +1,6 @@
 import type { CollectionSlug, Config, Endpoint } from 'payload'
 
-import type  { S3ExplorerPluginOptions, StorageAdapterOptions } from './types/index.js'
+import type { S3ExplorerPluginOptions, StorageAdapterOptions } from './types/index.js'
 
 import {
   makeDeleteHandler,
@@ -41,7 +41,6 @@ export type PayloadStorageFileExplorerConfig = {
    */
   enableUpload?: boolean
 
-
   /**
    * Max file size for uploads in bytes.
    * @default 104857600 (100 MB)
@@ -77,7 +76,6 @@ export const payloadStorageFileExplorer = (pluginOptions: PayloadStorageFileExpl
     if (!config.collections) {
       config.collections = []
     }
-
 
     // if (pluginOptions.collections) {
     //   for (const collectionSlug in pluginOptions.collections) {
@@ -130,7 +128,7 @@ export const payloadStorageFileExplorer = (pluginOptions: PayloadStorageFileExpl
       options: pluginOptions,
     }
 
-    if(pluginOptions.adapterOptions.storageType === 's3') {
+    if (pluginOptions.adapterOptions.storageType === 's3') {
       config.admin.components.views.s3FileExplorer = {
         // Payload v3 resolves this as a module#exportName path.
         // The RSC wrapper reads plugin options from config.custom
@@ -148,9 +146,6 @@ export const payloadStorageFileExplorer = (pluginOptions: PayloadStorageFileExpl
         path: adminRoute,
       }
     }
-
-
-
 
     const explorerEndpoints: Endpoint[] = [
       {
@@ -195,12 +190,8 @@ export const payloadStorageFileExplorer = (pluginOptions: PayloadStorageFileExpl
   }
 }
 
-
-export function s3ExplorerPluginOptions(
-  options: S3ExplorerPluginOptions
-): S3ExplorerPluginOptions {
+export function s3ExplorerPluginOptions(options: S3ExplorerPluginOptions): S3ExplorerPluginOptions {
   return {
     ...options,
   }
 }
-

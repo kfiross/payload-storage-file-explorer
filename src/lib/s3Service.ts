@@ -48,8 +48,8 @@ const calcFolderInfo = async (
   prefix: string,
   continuationToken?: string,
 ): Promise<{ lastModified?: Date; size: number }> => {
-  let totalSize = 0;
-  let lastModified: Date | undefined = undefined;
+  let totalSize = 0
+  let lastModified: Date | undefined = undefined
 
   do {
     const command = new ListObjectsV2Command({
@@ -58,32 +58,29 @@ const calcFolderInfo = async (
       Delimiter: '/',
       MaxKeys: 200,
       Prefix: prefix,
-    });
+    })
 
-    const response = await client.send(command);
+    const response = await client.send(command)
 
     for (const obj of response.Contents ?? []) {
       // accumulate size
-      totalSize += obj.Size ?? 0;
+      totalSize += obj.Size ?? 0
 
       // update latest lastModified
       if (obj.LastModified) {
         if (!lastModified || obj.LastModified > lastModified) {
-          lastModified = obj.LastModified;
+          lastModified = obj.LastModified
         }
       }
     }
 
-    continuationToken = response.IsTruncated
-      ? response.NextContinuationToken
-      : undefined;
-  } while (continuationToken);
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
+  } while (continuationToken)
 
-  console.log("totalSize=", totalSize);
+  console.log('totalSize=', totalSize)
 
-  return { lastModified, size: totalSize };
-};
-
+  return { lastModified, size: totalSize }
+}
 
 /**
  * List objects at a given prefix, splitting into folders and files.
@@ -104,10 +101,10 @@ export async function listS3Objects(
 
   const response = await client.send(command)
 
-  const foldersSizesPromises: Promise<{ lastModified: Date, size: number }>[] = []
-  const foldersNames = (response.CommonPrefixes ?? [])
+  const foldersSizesPromises: Promise<{ lastModified: Date; size: number }>[] = []
+  const foldersNames = response.CommonPrefixes ?? []
   for (const folder of foldersNames) {
-    console.log('folder.Prefix=',folder.Prefix!)
+    console.log('folder.Prefix=', folder.Prefix!)
     foldersSizesPromises.push(calcFolderInfo(client, bucket, folder.Prefix!))
   }
   const foldersSizes = await Promise.all(foldersSizesPromises)
@@ -120,7 +117,6 @@ export async function listS3Objects(
       lastModified: foldersSizes[index].lastModified,
       prefix: p.Prefix!,
       size: foldersSizes[index].size,
-      
     }))
 
   const files: S3Object[] = (response.Contents ?? [])
@@ -132,7 +128,6 @@ export async function listS3Objects(
       lastModified: c.LastModified ?? new Date(),
       size: c.Size ?? 0,
     }))
-
 
   return {
     files,
@@ -199,11 +194,7 @@ export async function createPresignedUploadPost(
 /**
  * Delete a single S3 object.
  */
-export async function deleteS3Object(
-  client: S3Client,
-  bucket: string,
-  key: string,
-): Promise<void> {
+export async function deleteS3Object(client: S3Client, bucket: string, key: string): Promise<void> {
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
 }
 
@@ -270,7 +261,9 @@ export async function createS3Folder(
  * Format bytes to human-readable string.
  */
 export function formatBytes(bytes: number, decimals = 1): string {
-  if (bytes === 0) {return '0 B'}
+  if (bytes === 0) {
+    return '0 B'
+  }
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
@@ -283,16 +276,33 @@ export function formatBytes(bytes: number, decimals = 1): string {
 export function getMimeType(key: string): string {
   const ext = key.split('.').pop()?.toLowerCase() ?? ''
   const map: Record<string, string> = {
-    css: 'text/css', csv: 'text/csv', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    gif: 'image/gif', gz: 'application/gzip', html: 'text/html',
+    css: 'text/css',
+    csv: 'text/csv',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    gif: 'image/gif',
+    gz: 'application/gzip',
+    html: 'text/html',
     ico: 'image/x-icon',
-    jpeg: 'image/jpeg', jpg: 'image/jpeg', js: 'application/javascript',
-    json: 'application/json', mov: 'video/quicktime', mp3: 'audio/mpeg',
-    mp4: 'video/mp4', ogg: 'audio/ogg', pdf: 'application/pdf',
-    png: 'image/png', svg: 'image/svg+xml', tar: 'application/x-tar',
-    ts: 'application/typescript', txt: 'text/plain', wav: 'audio/wav',
-    webm: 'video/webm', webp: 'image/webp',
-    xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    jpeg: 'image/jpeg',
+    jpg: 'image/jpeg',
+    js: 'application/javascript',
+    json: 'application/json',
+    mov: 'video/quicktime',
+    mp3: 'audio/mpeg',
+    mp4: 'video/mp4',
+    ogg: 'audio/ogg',
+    pdf: 'application/pdf',
+    png: 'image/png',
+    svg: 'image/svg+xml',
+    tar: 'application/x-tar',
+    ts: 'application/typescript',
+    txt: 'text/plain',
+    wav: 'audio/wav',
+    webm: 'video/webm',
+    webp: 'image/webp',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     zip: 'application/zip',
   }
   return map[ext] ?? 'application/octet-stream'
@@ -311,7 +321,9 @@ export function isPreviewable(key: string): boolean {
  */
 export function buildBreadcrumbs(prefix: string): { label: string; prefix: string }[] {
   const crumbs: { label: string; prefix: string }[] = [{ label: 'Root', prefix: '' }]
-  if (!prefix) {return crumbs}
+  if (!prefix) {
+    return crumbs
+  }
 
   const parts = prefix.replace(/\/$/, '').split('/')
   parts.forEach((part, i) => {
