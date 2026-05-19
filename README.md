@@ -2,6 +2,7 @@
 
 A Payload CMS plugin that adds an S3-compatible file explorer to the Payload admin. It mounts an admin view and registers small Payload endpoints to list, preview, download, upload (presigned POST), create folders, and delete objects or prefixes.
 
+![Home](./images/home.png)
 ## Overview
 
 - **Admin UI**: Adds a configurable admin route (default `/explorer`) with list/grid views, previews, drag & drop uploads, bulk actions and folder navigation.
