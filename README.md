@@ -1,218 +1,136 @@
-# Payload Plugin Template
+# Payload Storage File Explorer
 
-A template repo to create a [Payload CMS](https://payloadcms.com) plugin.
+A Payload CMS plugin that adds an S3-compatible file explorer to the Payload admin. It mounts an admin view and registers small Payload endpoints to list, preview, download, upload (presigned POST), create folders, and delete objects or prefixes.
 
-Payload is built with a robust infrastructure intended to support Plugins with ease. This provides a simple, modular, and reusable way for developers to extend the core capabilities of Payload.
+## Overview
 
-To build your own Payload plugin, all you need is:
+- **Admin UI**: Adds a configurable admin route (default `/explorer`) with list/grid views, previews, drag & drop uploads, bulk actions and folder navigation.
+- **Server endpoints**: Registers Payload endpoints under `/api/s3-explorer` for listing, presigned uploads, presigned downloads, folder creation and deletion.
+- **S3-compatible**: Uses AWS SDK for S3 but supports custom endpoints (MinIO, LocalStack) and path-style URLs.
 
-- An understanding of the basic Payload concepts
-- And some JavaScript/Typescript experience
+## Features
 
-## Background
+- **Browse buckets**: paginate and show folders/files with sizes and last-modified.
+- **Preview & download**: presigned GET URLs for preview/download of objects.
+- **Direct uploads**: presigned POST (browser → S3) with size and MIME constraints.
+- **Folder create**: creates zero-byte "folder" placeholder objects (key ends with `/`).
+- **Delete**: delete single objects or recursively delete a prefix (folder).
+- **Bulk actions**: select multiple files to download or delete.
+- **Configurable**: enable/disable uploads, deletes, downloads; set root prefix, max upload size, presigned expiry, navigation label and admin route.
 
-Here is a short recap on how to integrate plugins with Payload, to learn more visit the [plugin overview page](https://payloadcms.com/docs/plugins/overview).
+## Quick Install
 
-### How to install a plugin
+1. Install the package in your project (example using pnpm):
 
-To install any plugin, simply add it to your payload.config() in the Plugin array.
+```bash
+pnpm add payload-storage-file-explorer
+```
+
+2. Add the plugin to your Payload config (`payload.config.ts`):
 
 ```ts
-import myPlugin from 'my-plugin'
+import { payloadStorageFileExplorer } from 'payload-storage-file-explorer'
 
-export const config = buildConfig({
+export default buildConfig({
   plugins: [
-    // You can pass options to the plugin
-    myPlugin({
-      enabled: true,
+    payloadStorageFileExplorer({
+      adapterOptions: {
+        storageType: 's3',
+        bucket: process.env.S3_BUCKET,
+        region: process.env.AWS_REGION || 'us-east-1',
+        // optional: 
+        // - credentials,
+        // - endpoint,
+        // - forcePathStyle,
+        // - allowedMimeTypes
+      },
+      adminRoute: '/explorer',
+      navigationLabel: 'File Explorer',
     }),
   ],
 })
 ```
 
-### Initialization
+- **Configuration options**
 
-The initialization process goes in the following order:
+- **adapterOptions**: required adapter configuration. Currently the plugin supports an S3-compatible adapter; see `S3ExplorerPluginOptions` in [src/types/index.ts](src/types/index.ts).
+- **adminRoute**: admin path where the view is mounted. Default: `/explorer`.
+- **enableDelete**: allow deleting objects/prefixes. Default: `true`.
+- **enableDownload**: enable presigned downloads. Default: `true`.
+- **enableFolderCreate**: allow creating folders. Default: `true`.
+- **enableUpload**: allow uploads. Default: `true`.
+- **maxUploadSize**: max upload size in bytes. Default: `100 * 1024 * 1024` (100 MB).
+- **navigationLabel**: label for admin sidebar. Default: `File Explorer`.
+- **presignedUrlExpiry**: presigned GET expiry in seconds. Default: `3600`.
+- **rootPrefix**: optional root prefix to scope explorer to a subfolder. Default: `''`.
 
-1. Incoming config is validated
-2. **Plugins execute**
-3. Default options are integrated
-4. Sanitization cleans and validates data
-5. Final config gets initialized
+See [src/index.ts](src/index.ts) for the authoritative defaults and wiring.
 
-## Building the Plugin
+### API Endpoints
 
-When you build a plugin, you are purely building a feature for your project and then abstracting it outside of the project.
+All endpoints are registered on the plugin and available under `/api/s3-explorer`.
 
-### Template Files
+- GET `/api/s3-explorer/list?prefix=<prefix>&token=<continuationToken>`
+  - Response: `{ success: true, data: S3ListResult }`
+- GET `/api/s3-explorer/download?key=<objectKey>`
+  - Returns a presigned GET URL: `{ success: true, data: { key, url } }`
+- POST `/api/s3-explorer/upload`
+  - Body: `{ prefix, filename, contentType }`
+  - Returns presigned POST details: `{ success: true, data: { url, fields, key } }`
+- POST `/api/s3-explorer/folder`  — create new folder placeholder
+  - Body: `{ prefix, name }` → `{ success: true, data: { folderKey } }`
+- DELETE `/api/s3-explorer/delete`
+  - Body: `{ key }` deletes a single object OR `{ prefix }` deletes all objects under that prefix (recursive)
 
-In the Payload [plugin template](https://github.com/payloadcms/payload/tree/main/templates/plugin), you will see a common file structure that is used across all plugins:
+Examples (list & download):
 
-1. root folder
-2. /src folder
-3. /dev folder
+```bash
+curl 'http://localhost:3000/api/s3-explorer/list?prefix=media/'
 
-#### Root
-
-In the root folder, you will see various files that relate to the configuration of the plugin. We set up our environment in a similar manner in Payload core and across other projects, so hopefully these will look familiar:
-
-- **README**.md\* - This contains instructions on how to use the template. When you are ready, update this to contain instructions on how to use your Plugin.
-- **package**.json\* - Contains necessary scripts and dependencies. Overwrite the metadata in this file to describe your Plugin.
-- .**eslint**.config.js - Eslint configuration for reporting on problematic patterns.
-- .**gitignore** - List specific untracked files to omit from Git.
-- .**prettierrc**.json - Configuration for Prettier code formatting.
-- **tsconfig**.json - Configures the compiler options for TypeScript
-- .**swcrc** - Configuration for SWC, a fast compiler that transpiles and bundles TypeScript.
-- **vitest**.config.js - Config file for Vitest, defining how tests are run and how modules are resolved
-
-**IMPORTANT\***: You will need to modify these files.
-
-#### Dev
-
-In the dev folder, you’ll find a basic payload project, created with `npx create-payload-app` and the blank template.
-
-**IMPORTANT**: Make a copy of the `.env.example` file and rename it to `.env`. Update the `DATABASE_URL` to match the database you are using and your plugin name. Update `PAYLOAD_SECRET` to a unique string.
-**You will not be able to run `pnpm/yarn dev` until you have created this `.env` file.**
-
-`myPlugin` has already been added to the `payload.config()` file in this project.
-
-```ts
-plugins: [
-  myPlugin({
-    collections: {
-      posts: true,
-    },
-  }),
-]
+curl 'http://localhost:3000/api/s3-explorer/download?key=media/example.jpg'
 ```
 
-Later when you rename the plugin or add additional options, **make sure to update it here**.
+## Adapters
 
-You may wish to add collections or expand the test project depending on the purpose of your plugin. Just make sure to keep this dev environment as simplified as possible - users should be able to install your plugin without additional configuration required.
+This plugin is built to support interchangeable storage adapters. At present it ships with an S3-compatible adapter. Future releases may add additional adapters (e.g., Vercel Blob, Google Cloud Storage, Azure Blob).
 
-When you’re ready to start development, initiate the project with `pnpm/npm/yarn dev` and pull up [http://localhost:3000](http://localhost:3000) in your browser.
+**AWS S3**
 
-#### Src
+Supported S3 adapter options (see [src/types/index.ts](src/types/index.ts)):
 
-Now that we have our environment setup and we have a dev project ready to - it’s time to build the plugin!
+- `bucket` (string) — required S3 bucket name.
+- `region` (string) — AWS region.
+- `credentials` — optional `{ accessKeyId, secretAccessKey, sessionToken? }`.
+- `endpoint` — optional custom endpoint (MinIO, LocalStack).
+- `forcePathStyle` — boolean for path-style URLs (MinIO/local testing).
+- `allowedMimeTypes` — `'*'` or array of MIME types to restrict uploads.
 
-**index.ts**
+The plugin will fall back to environment credentials / IAM role if `credentials` are omitted.
 
-The essence of a Payload plugin is simply to extend the payload config - and that is exactly what we are doing in this file.
+**Admin UI**
 
-```ts
-export const myPlugin =
-  (pluginOptions: MyPluginConfig) =>
-  (config: Config): Config => {
-    // do cool stuff with the config here
+- Mounts a server-wrapped RSC at the configured `adminRoute` using `S3ExplorerViewServer`.
+- Client features include grid/list views, file/folder metadata, previews (images, PDFs), drag & drop upload, create-folder drawer, selection, sorting and bulk actions. See [src/components/S3ExplorerViewClient.tsx](src/components/S3ExplorerViewClient.tsx) for implementation details.
 
-    return config
-  }
+**Development**
+
+- Repo layout: plugin code is in `src/`, a local dev Payload app is in `dev/`.
+- To run the dev app (from project root):
+
+```bash
+pnpm install
+pnpm --filter ./dev dev
 ```
 
-First, we receive the existing payload config along with any plugin options.
+Or change into the `dev` folder and run the app with your package manager. Ensure you copy `.env.example` → `.env` and set `DATABASE_URL` and `PAYLOAD_SECRET` before running.
 
-From here, you can extend the config as you wish.
+**Files of interest**
 
-Finally, you return the config and that is it!
+- Main plugin entry: [src/index.ts](src/index.ts)
+- Admin views: [src/components/S3ExplorerViewServer.tsx](src/components/S3ExplorerViewServer.tsx) and [src/components/S3ExplorerViewClient.tsx](src/components/S3ExplorerViewClient.tsx)
+- S3 helper API: [src/lib/s3Service.ts](src/lib/s3Service.ts)
+- Endpoint handlers: [src/endpoints/customEndpointHandlers.ts](src/endpoints/customEndpointHandlers.ts)
 
-##### Spread Syntax
+**License & support**
 
-Spread syntax (or the spread operator) is a feature in JavaScript that uses the dot notation **(...)** to spread elements from arrays, strings, or objects into various contexts.
-
-We are going to use spread syntax to allow us to add data to existing arrays without losing the existing data. It is crucial to spread the existing data correctly – else this can cause adverse behavior and conflicts with Payload config and other plugins.
-
-Let’s say you want to build a plugin that adds a new collection:
-
-```ts
-config.collections = [
-  ...(config.collections || []),
-  // Add additional collections here
-]
-```
-
-First we spread the `config.collections` to ensure that we don’t lose the existing collections, then you can add any additional collections just as you would in a regular payload config.
-
-This same logic is applied to other properties like admin, hooks, globals:
-
-```ts
-config.globals = [
-  ...(config.globals || []),
-  // Add additional globals here
-]
-
-config.hooks = {
-  ...(incomingConfig.hooks || {}),
-  // Add additional hooks here
-}
-```
-
-Some properties will be slightly different to extend, for instance the onInit property:
-
-```ts
-import { onInitExtension } from './onInitExtension' // example file
-
-config.onInit = async (payload) => {
-  if (incomingConfig.onInit) await incomingConfig.onInit(payload)
-  // Add additional onInit code by defining an onInitExtension function
-  onInitExtension(pluginOptions, payload)
-}
-```
-
-If you wish to add to the onInit, you must include the **async/await**. We don’t use spread syntax in this case, instead you must await the existing `onInit` before running additional functionality.
-
-In the template, we have stubbed out some addition `onInit` actions that seeds in a document to the `plugin-collection`, you can use this as a base point to add more actions - and if not needed, feel free to delete it.
-
-##### Types.ts
-
-If your plugin has options, you should define and provide types for these options.
-
-```ts
-export type MyPluginConfig = {
-  /**
-   * List of collections to add a custom field
-   */
-  collections?: Partial<Record<CollectionSlug, true>>
-  /**
-   * Disable the plugin
-   */
-  disabled?: boolean
-}
-```
-
-If possible, include JSDoc comments to describe the options and their types. This allows a developer to see details about the options in their editor.
-
-##### Testing
-
-Having a test suite for your plugin is essential to ensure quality and stability. **Vitest** is a fast, modern testing framework that works seamlessly with Vite and supports TypeScript out of the box.
-
-Vitest organizes tests into test suites and cases, similar to other testing frameworks. We recommend creating individual tests based on the expected behavior of your plugin from start to finish.
-
-Writing tests with Vitest is very straightforward, and you can learn more about how it works in the [Vitest documentation.](https://vitest.dev/)
-
-For this template, we stubbed out `int.spec.ts` in the `dev` folder where you can write your tests.
-
-```ts
-describe('Plugin tests', () => {
-  // Create tests to ensure expected behavior from the plugin
-  it('some condition that must be met', () => {
-   // Write your test logic here
-   expect(...)
-  })
-})
-```
-
-## Best practices
-
-With this tutorial and the plugin template, you should have everything you need to start building your own plugin.
-In addition to the setup, here are other best practices aim we follow:
-
-- **Providing an enable / disable option:** For a better user experience, provide a way to disable the plugin without uninstalling it. This is especially important if your plugin adds additional webpack aliases, this will allow you to still let the webpack run to prevent errors.
-- **Include tests in your GitHub CI workflow**: If you’ve configured tests for your package, integrate them into your workflow to run the tests each time you commit to the plugin repository. Learn more about [how to configure tests into your GitHub CI workflow.](https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs)
-- **Publish your finished plugin to NPM**: The best way to share and allow others to use your plugin once it is complete is to publish an NPM package. This process is straightforward and well documented, find out more [creating and publishing a NPM package here.](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
-- **Add payload-plugin topic tag**: Apply the tag **payload-plugin **to your GitHub repository. This will boost the visibility of your plugin and ensure it gets listed with [existing payload plugins](https://github.com/topics/payload-plugin).
-- **Use [Semantic Versioning](https://semver.org/) (SemVar)** - With the SemVar system you release version numbers that reflect the nature of changes (major, minor, patch). Ensure all major versions reference their Payload compatibility.
-
-# Questions
-
-Please contact [Payload](mailto:dev@payloadcms.com) with any questions about using this plugin template.
+This repository is provided as-is. For questions about Payload integration, contact the Payload team or open an issue in this repository.
