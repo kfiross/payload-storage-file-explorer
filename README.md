@@ -29,23 +29,43 @@ pnpm add payload-storage-file-explorer
 2. Add the plugin to your Payload config (`payload.config.ts`):
 
 ```ts
-import { payloadStorageFileExplorer } from 'payload-storage-file-explorer'
+import { payloadStorageFileExplorer, s3ExplorerPluginOptions } from 'payload-storage-file-explorer'
 
 export default buildConfig({
   plugins: [
     payloadStorageFileExplorer({
-      adapterOptions: {
+      adapterOptions: s3ExplorerPluginOptions({
+        bucket: process.env.S3_BUCKET!,
+        credentials: {
+          accessKeyId: process.env.S3_ACCESS_KEY!,
+          secretAccessKey: process.env.S3_SECRET_KEY!,
+        },
+        endpoint: process.env.S3_ENDPOINT!,
+        region: 'eu-west-3',
+        // Optional: limits
+        allowedMimeTypes: ['image/*', 'application/pdf', 'video/*'],
+        forcePathStyle: true,
         storageType: 's3',
-        bucket: process.env.S3_BUCKET,
-        region: process.env.AWS_REGION || 'us-east-1',
-        // optional: 
-        // - credentials,
-        // - endpoint,
-        // - forcePathStyle,
-        // - allowedMimeTypes
-      },
+      }),
+
+      // Optional: custom route & label
       adminRoute: '/explorer',
       navigationLabel: 'File Explorer',
+
+      // Optional overrides
+      maxUploadSize: 50 * 1024 * 1024, // 50 MB
+
+      // Optional: disable features
+      enableDelete: true,
+      enableDownload: true,
+      enableFolderCreate: true,
+      enableUpload: true,
+
+      // Optional: presigned URL expiry (seconds)
+      presignedUrlExpiry: 3600,
+
+      // Optional: scope to a subfolder
+      // rootPrefix: 'uploads/',
     }),
   ],
 })
@@ -94,9 +114,10 @@ curl 'http://localhost:3000/api/s3-explorer/download?key=media/example.jpg'
 
 This plugin is built to support interchangeable storage adapters. At present it ships with an S3-compatible adapter. Future releases may add additional adapters (e.g., Vercel Blob, Google Cloud Storage, Azure Blob).
 
-**AWS S3**
 
-Supported S3 adapter options (see [src/types/index.ts](src/types/index.ts)):
+**S3 (current)**
+
+Use the `s3ExplorerPluginOptions()` helper to build S3 adapter options. Supported S3 adapter options (see [src/types/index.ts](src/types/index.ts)):
 
 - `bucket` (string) — required S3 bucket name.
 - `region` (string) — AWS region.
