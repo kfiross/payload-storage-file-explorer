@@ -16,6 +16,7 @@
     "emitDeclarationOnly": true,
     "target": "ES2022",
     "composite": true,
+    "types": ["node", "react", "react-dom"],
     "plugins": [
       {
         "name": "next"

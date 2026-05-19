@@ -146,13 +146,6 @@ pnpm --filter ./dev dev
 
 Or change into the `dev` folder and run the app with your package manager. Ensure you copy `.env.example` → `.env` and set `DATABASE_URL` and `PAYLOAD_SECRET` before running.
 
-**Files of interest**
-
-- Main plugin entry: [src/index.ts](src/index.ts)
-- Admin views: [src/components/S3ExplorerViewServer.tsx](src/components/S3ExplorerViewServer.tsx) and [src/components/S3ExplorerViewClient.tsx](src/components/S3ExplorerViewClient.tsx)
-- S3 helper API: [src/lib/s3Service.ts](src/lib/s3Service.ts)
-- Endpoint handlers: [src/endpoints/customEndpointHandlers.ts](src/endpoints/customEndpointHandlers.ts)
-
 **License & support**
 
 This repository is provided as-is. For questions about Payload integration, contact the Payload team or open an issue in this repository.
