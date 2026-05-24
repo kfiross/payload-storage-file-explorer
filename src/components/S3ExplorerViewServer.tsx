@@ -40,10 +40,6 @@ export const S3ExplorerViewServer: React.FC<AdminViewServerProps> = ({
       visibleEntities={initPageResult.visibleEntities}
     >
       <Gutter>
-        {/*<div style={{display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px'}}>*/}
-        {/*  <h1>Sending a push message</h1>*/}
-        {/*  <p>Here you can send a notfication to user or a group of users</p>*/}
-        {/*</div>*/}
         <S3ExplorerViewClient apiBasePath={apiBasePath} options={clientOptions} />
       </Gutter>
     </DefaultTemplate>
