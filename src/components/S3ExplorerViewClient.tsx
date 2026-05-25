@@ -1013,11 +1013,11 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
               slug={folderDrawerSlug}
               style={{ background: 'none', border: 'none', padding: '0px' }}
             >
-              {/* el="span" prevents a <button> inside <button> warning */}
+              {/* el="div" prevents a <button> inside <button> warning */}
               <div style={{ marginBottom: 0 }}>
-                <Button buttonStyle="secondary" el="button" size="medium">
+                <Button buttonStyle="secondary" el="div" size="medium">
                   <Icon.FolderPlus />
-                  &nbsp;New Folder
+                  &nbsp;&nbsp;New Folder
                 </Button>
               </div>
             </DrawerToggler>
@@ -1030,7 +1030,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
               size="medium"
             >
               <Icon.Upload />
-              &nbsp;Upload Files
+              &nbsp;&nbsp;Upload Files
             </Button>
           )}
 
@@ -1040,7 +1040,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
             size="medium"
           >
             <Icon.Refresh />
-            &nbsp;Refresh
+            &nbsp;&nbsp;Refresh
           </Button>
         </div>
       </div>
