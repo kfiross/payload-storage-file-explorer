@@ -17,7 +17,7 @@ A Payload CMS plugin that adds an S3-compatible file explorer to the Payload adm
 - **Folder create**: creates zero-byte "folder" placeholder objects (key ends with `/`).
 - **Delete**: delete single objects or recursively delete a prefix (folder).
 - **Bulk actions**: select multiple files to download or delete.
-- **Configurable**: enable/disable uploads, deletes, downloads; set root prefix, max upload size, presigned expiry, navigation label and admin route.
+- **Configurable**: enable/disable uploads, deletes, downloads; set root prefix, max upload size, presigned expiry, navigation label and admin route and access-level per actions.
 
 ## Quick Install
 
