@@ -456,6 +456,7 @@ interface ExplorerProps {
     | 'enableUpload'
     | 'maxUploadSize'
     | 'rootPrefix'
+    | 'access'
   >
 }
 
@@ -795,18 +796,31 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
     try {
       if (deleteModal.type === 'bulk') {
         const keys = Array.from(selected).filter((k) => !k.endsWith('/'))
-        await Promise.all(
-          keys.map((key) =>
-            fetch(`${apiBasePath}/delete`, {
-              body: JSON.stringify({ key }),
-              headers: { 'Content-Type': 'application/json' },
-              method: 'DELETE',
+        try {
+          await Promise.all(
+            keys.map(async (key) => {
+              const response = await fetch(`${apiBasePath}/delete`, {
+                body: JSON.stringify({ key }),
+                headers: { 'Content-Type': 'application/json' },
+                method: 'DELETE',
+              });
+
+              // Fetch resolves successfully for 403, so we must manually check !ok
+              if (!response.ok) {
+                throw new Error(`Failed to delete. Status: ${response.status}`);
+              }
+              return response;
             }),
-          ),
-        )
-        payloadToast.success(`Deleted ${keys.length} file(s)`)
-        setSelected(new Set())
-        setPreview(null)
+          );
+
+            payloadToast.success(`Deleted ${keys.length} file(s)`);
+          } catch (error) {
+            payloadToast.error("Failed to delete files. You may not have permission.");
+          }
+          finally {
+            setSelected(new Set())
+            setPreview(null)
+          }
       } 
       else {
         const body =

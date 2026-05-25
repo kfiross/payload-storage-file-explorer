@@ -9,7 +9,7 @@
  * its own router at  /api/<slug>  (custom endpoints) or at a top-level custom
  * path via the `endpoints` array on the root Config.
  */
-import type { PayloadHandler } from 'payload'
+import type { PayloadHandler, PayloadRequest } from 'payload'
 
 import type { PayloadStorageFileExplorerConfig } from '../index.js'
 
@@ -29,16 +29,77 @@ function json<T>(data: T, status = 200): Response {
   return Response.json(data, { status })
 }
 
+async function resolveStoragePath({
+  req,
+  options,
+  searchParams,
+  prefix,
+}: {
+  req: PayloadRequest
+  options: PayloadStorageFileExplorerConfig
+  searchParams?: URLSearchParams
+  prefix?: string,
+}) {
+  const keyFromQuery = searchParams?.get('key') ?? undefined
+  const prefixFromQuery = searchParams?.get('prefix') ?? prefix ?? ''
+
+  const dynamicRootPrefix =
+    await options.resolveRootPrefix?.({ req })
+
+  const rootPrefix =
+    dynamicRootPrefix ??
+    options.rootPrefix ??
+    ''
+
+  const normalizedRootPrefix = rootPrefix.endsWith('/')
+    ? rootPrefix
+    : rootPrefix
+      ? `${rootPrefix}/`
+      : ''
+
+  /**
+   * if key → it's an action on an existing file (download/delete etc.)
+   */
+  if (keyFromQuery) {
+    const safeKey = keyFromQuery.startsWith(normalizedRootPrefix)
+      ? keyFromQuery
+      : `${normalizedRootPrefix}${keyFromQuery}`
+
+    return {
+      key: safeKey,
+      prefix: safeKey.substring(0, safeKey.lastIndexOf('/') + 1),
+      rootPrefix: normalizedRootPrefix,
+    }
+  }
+
+  /**
+   *  if no key → it's navigation / upload context
+   */
+  const safePrefix = prefixFromQuery.startsWith(normalizedRootPrefix)
+    ? prefixFromQuery
+    : normalizedRootPrefix
+
+  const normalizedPrefix = safePrefix.endsWith('/')
+    ? safePrefix
+    : safePrefix
+      ? `${safePrefix}/`
+      : ''
+
+  return {
+    key: undefined,
+    prefix: normalizedPrefix,
+    rootPrefix: normalizedRootPrefix,
+  }
+}
+
 // ─── list ─────────────────────────────────────────────────────────────────────
 
 /**
  * GET /api/s3-explorer/list?prefix=some/path/&token=<continuationToken>
  * Returns { success, data: S3ListResult }
  */
-export function makeListHandler({
-  adapterOptions,
-  ...options
-}: PayloadStorageFileExplorerConfig): PayloadHandler {
+export function makeListHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler {
+  const { adapterOptions } = options
   return async (req) => {
     if (adapterOptions.storageType !== 's3') {
       throw new Error(`storageType '${adapterOptions.storageType}' is not supported `)
@@ -46,12 +107,17 @@ export function makeListHandler({
 
     try {
       const url = new URL(req.url!)
-      const prefix = url.searchParams.get('prefix') ?? ''
       const continuationToken = url.searchParams.get('token') ?? undefined
-      const rootPrefix = options.rootPrefix ?? ''
 
-      // Never let the caller escape outside the configured rootPrefix
-      const safePrefix = prefix.startsWith(rootPrefix) ? prefix : rootPrefix
+      const { prefix: safePrefix } = await resolveStoragePath({
+        req,
+        options,
+        searchParams: url.searchParams,
+      })
+
+      if(options.access?.canList && !(await options.access?.canList?.({req, prefix: safePrefix}))) {
+        return json({ error: 'Forbidden', success: false }, 403)
+      }
 
       const client = createS3Client(adapterOptions)
       const result = await listS3Objects(
@@ -78,10 +144,8 @@ export function makeListHandler({
  * Body: { prefix, filename, contentType }
  * Returns { success, data: { url, fields, key } }  — client POSTs directly to S3.
  */
-export function makeUploadHandler({
-  adapterOptions,
-  ...options
-}: PayloadStorageFileExplorerConfig): PayloadHandler {
+export function makeUploadHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler {
+  const { adapterOptions } = options
   return async (req) => {
     if (adapterOptions.storageType !== 's3') {
       throw new Error(`storageType '${adapterOptions.storageType}' is not supported `)
@@ -92,22 +156,28 @@ export function makeUploadHandler({
     }
 
     try {
-      // Payload v3 exposes the parsed body via req.json()
       // @ts-ignore
       const body = (await req.json()) as {
         contentType?: string
         filename?: string
         prefix?: string
       }
-      const { filename, prefix = '' } = body
+      const { filename, prefix } = body
 
       if (!filename) {
         return json({ error: 'filename is required', success: false }, 400)
       }
 
-      const rootPrefix = options.rootPrefix ?? ''
-      const safePrefix = prefix.startsWith(rootPrefix) ? prefix : rootPrefix
+      const { prefix: safePrefix } = await resolveStoragePath({
+        req,
+        options,
+        prefix,
+      })
       const key = `${safePrefix}${filename}`
+
+      if(options.access?.canUpload && !(await options.access?.canUpload?.({req, key, prefix: safePrefix}))) {
+        return json({ error: 'Forbidden', success: false }, 403)
+      }
 
       const client = createS3Client(adapterOptions)
       const result = await createPresignedUploadPost(client, adapterOptions.bucket, key, {
@@ -133,10 +203,8 @@ export function makeUploadHandler({
  * Body: { key } for a single file  OR  { prefix } for an entire folder (recursive).
  * Returns { success, data: { key } | { deleted: number } }
  */
-export function makeDeleteHandler({
-  adapterOptions,
-  ...options
-}: PayloadStorageFileExplorerConfig): PayloadHandler {
+export function makeDeleteHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler {
+  const { adapterOptions } = options
   return async (req) => {
     if (adapterOptions.storageType !== 's3') {
       throw new Error(`storageType '${adapterOptions.storageType}' is not supported `)
@@ -150,20 +218,48 @@ export function makeDeleteHandler({
       // @ts-ignore
       const body = (await req.json()) as { key?: string; prefix?: string }
       const { key, prefix } = body
-      const rootPrefix = options.rootPrefix ?? ''
       const client = createS3Client(adapterOptions)
 
       if (prefix) {
-        if (rootPrefix && !prefix.startsWith(rootPrefix)) {
+        const { prefix: safePrefix, rootPrefix } = await resolveStoragePath({
+          req,
+          options,
+          prefix,
+        })
+
+        if(options.access?.canDelete && !(await options.access?.canDelete?.({req, prefix: safePrefix}))) {
+          return json({ error: 'Forbidden', success: false }, 403)
+        }
+
+        // NOTE: Ensures user cannot delete everything if prefix is modified to bypass rootPrefix boundaries
+        if (rootPrefix && (!safePrefix.startsWith(rootPrefix) || safePrefix === rootPrefix)) {
           return json({ error: 'Access denied', success: false }, 403)
         }
-        const { deleted } = await deleteS3Prefix(client, adapterOptions.bucket, prefix)
+
+        const { deleted } = await deleteS3Prefix(client, adapterOptions.bucket, safePrefix)
         return json({ data: { deleted }, success: true })
       }
 
       if (key) {
-        await deleteS3Object(client, adapterOptions.bucket, key)
-        return json({ data: { key }, success: true })
+        const searchParams = new URLSearchParams()
+        searchParams.set('key', key)
+
+        const { key: safeKey, rootPrefix } = await resolveStoragePath({
+          req,
+          options,
+          searchParams,
+        })
+
+        if (!safeKey || (rootPrefix && !safeKey.startsWith(rootPrefix))) {
+          return json({ error: 'Access denied', success: false }, 403)
+        }
+
+        if(options.access?.canDelete && !(await options.access?.canDelete?.({req, key: safeKey}))) {
+          return json({ error: 'Forbidden', success: false }, 403)
+        }
+
+        await deleteS3Object(client, adapterOptions.bucket, safeKey!)
+        return json({ data: { key: safeKey }, success: true })
       }
 
       return json({ error: 'key or prefix is required', success: false }, 400)
@@ -183,10 +279,8 @@ export function makeDeleteHandler({
  * Body: { prefix, name }
  * Returns { success, data: { folderKey } }
  */
-export function makeFolderHandler({
-  adapterOptions,
-  ...options
-}: PayloadStorageFileExplorerConfig): PayloadHandler {
+export function makeFolderHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler {
+  const { adapterOptions } = options
   if (adapterOptions.storageType !== 's3') {
     throw new Error(`storageType '${adapterOptions.storageType}' is not supported `)
   }
@@ -199,7 +293,7 @@ export function makeFolderHandler({
     try {
       // @ts-ignore
       const body = (await req.json()) as { name?: string; prefix?: string }
-      const { name, prefix = '' } = body
+      const { name, prefix } = body
 
       if (!name) {
         return json({ error: 'name is required', success: false }, 400)
@@ -209,9 +303,18 @@ export function makeFolderHandler({
         return json({ error: 'Folder name contains invalid characters', success: false }, 400)
       }
 
-      const rootPrefix = options.rootPrefix ?? ''
-      const safePrefix = prefix.startsWith(rootPrefix) ? prefix : rootPrefix
+      const { prefix: safePrefix } = await resolveStoragePath({
+        req,
+        options,
+        prefix,
+      })
+
+      
       const folderKey = `${safePrefix}${name}/`
+
+      if(options.access?.canCreateFolder && !(await options.access?.canCreateFolder?.({req, prefix: safePrefix, key: folderKey}))) {
+          return json({ error: 'Forbidden', success: false }, 403)
+      }
 
       const client = createS3Client(adapterOptions)
       await createS3Folder(client, adapterOptions.bucket, folderKey)
@@ -233,10 +336,8 @@ export function makeFolderHandler({
  * GET /api/s3-explorer/download?key=some/path/file.jpg
  * Returns { success, data: { url, key } }  — presigned GET URL.
  */
-export function makeDownloadHandler({
-  adapterOptions,
-  ...options
-}: PayloadStorageFileExplorerConfig): PayloadHandler {
+export function makeDownloadHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler {
+  const { adapterOptions } = options
   return async (req) => {
     if (adapterOptions.storageType !== 's3') {
       throw new Error(`storageType '${adapterOptions.storageType}' is not supported `)
@@ -248,14 +349,19 @@ export function makeDownloadHandler({
 
     try {
       const url = new URL(req.url!)
-      const key = url.searchParams.get('key')
+      const keyFromQuery = url.searchParams.get('key')
 
-      if (!key) {
+      if (!keyFromQuery) {
         return json({ error: 'key is required', success: false }, 400)
       }
 
-      const rootPrefix = options.rootPrefix ?? ''
-      if (rootPrefix && !key.startsWith(rootPrefix)) {
+      const { key: safeKey, rootPrefix } = await resolveStoragePath({
+        req,
+        options,
+        searchParams: url.searchParams,
+      })
+
+      if (rootPrefix && !safeKey!.startsWith(rootPrefix)) {
         return json({ error: 'Access denied', success: false }, 403)
       }
 
@@ -263,11 +369,11 @@ export function makeDownloadHandler({
       const presignedUrl = await getPresignedDownloadUrl(
         client,
         adapterOptions.bucket,
-        key,
+        safeKey!,
         options.presignedUrlExpiry ?? 3600,
       )
 
-      return json({ data: { key, url: presignedUrl }, success: true })
+      return json({ data: { key: safeKey, url: presignedUrl }, success: true })
     } catch (err: unknown) {
       return json(
         { error: err instanceof Error ? err.message : 'Unknown error', success: false },

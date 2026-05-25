@@ -77,8 +77,6 @@ const calcFolderInfo = async (
     continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
   } while (continuationToken)
 
-  console.log('totalSize=', totalSize)
-
   return { lastModified, size: totalSize }
 }
 
@@ -104,7 +102,6 @@ export async function listS3Objects(
   const foldersSizesPromises: Promise<{ lastModified?: Date; size: number }>[] = []
   const foldersNames = response.CommonPrefixes ?? []
   for (const folder of foldersNames) {
-    console.log('folder.Prefix=', folder.Prefix!)
     foldersSizesPromises.push(calcFolderInfo(client, bucket, folder.Prefix!))
   }
   const foldersSizes = await Promise.all(foldersSizesPromises)
