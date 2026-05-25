@@ -94,7 +94,7 @@ export default buildConfig({
 | **`enableDownload`** | Enable presigned downloads. | `true` |
 | **`enableFolderCreate`** | Allow creating folders. | `true` |
 | **`enableUpload`** | Allow uploads. | `true` |
-| **`maxUploadSize`** | Max upload size in bytes. | `100 * 1024 * 1024` (100 MB) |
+| **`maxUploadSize`** | Max upload size in bytes. | `50 * 1024 * 1024` (50 MB) |
 | **`navigationLabel`** | Label for admin sidebar. | `File Explorer` |
 | **`presignedUrlExpiry`** | Presigned GET expiry in seconds. | `3600` |
 | **`rootPrefix`** | Optional root prefix to scope explorer to a subfolder. | `''` |

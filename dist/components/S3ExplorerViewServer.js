@@ -13,7 +13,7 @@ import { S3ExplorerViewClient } from './S3ExplorerViewClient.js';
         enableDownload: pluginOptions.enableDownload ?? true,
         enableFolderCreate: pluginOptions.enableFolderCreate ?? true,
         enableUpload: pluginOptions.enableUpload ?? true,
-        maxUploadSize: pluginOptions.maxUploadSize ?? 100 * 1024 * 1024,
+        maxUploadSize: pluginOptions.maxUploadSize ?? 50 * 1024 * 1024,
         rootPrefix: pluginOptions.rootPrefix ?? ''
     };
     return /*#__PURE__*/ _jsx(DefaultTemplate, {

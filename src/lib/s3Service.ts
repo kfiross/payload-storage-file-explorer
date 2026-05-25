@@ -167,7 +167,7 @@ export async function createPresignedUploadPost(
     maxSizeBytes?: number
   } = {},
 ): Promise<PresignedUploadResult> {
-  const { allowedMimeTypes = '*', expiresIn = 600, maxSizeBytes = 100 * 1024 * 1024 } = options
+  const { allowedMimeTypes = '*', expiresIn = 600, maxSizeBytes = 50 * 1024 * 1024 } = options
 
   const conditions: Parameters<typeof createPresignedPost>[1]['Conditions'] = [
     ['content-length-range', 0, maxSizeBytes],
