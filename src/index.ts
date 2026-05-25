@@ -1,6 +1,14 @@
-import type { CollectionSlug, Config, Endpoint } from 'payload'
+import type { Config, Endpoint, PayloadRequest } from 'payload'
 
-import type { S3ExplorerPluginOptions, StorageAdapterOptions } from './types/index.js'
+import type { 
+  AfterDeleteHook,
+  AfterUploadHook,
+  BeforeDeleteHook,
+  BeforeUploadHook,
+  ExplorerAccessFn,
+  S3ExplorerPluginOptions,
+  StorageAdapterOptions 
+} from './types/index.js'
 
 import {
   makeDeleteHandler,
@@ -17,12 +25,18 @@ export type PayloadStorageFileExplorerConfig = {
    * @default '/explorer'
    */
   adminRoute?: string
+
+  /**
+   * Whether to disable the plugin. This keeps the plugin from registering any admin routes or API endpoints.
+   */
   disabled?: boolean
+
   /**
    * Whether to allow deleting files from S3.
    * @default true
    */
   enableDelete?: boolean
+
   /**
    * Whether to show file download / presigned URL button.
    * @default true
@@ -65,6 +79,44 @@ export type PayloadStorageFileExplorerConfig = {
    * @default ''
    */
   rootPrefix?: string
+
+  /**
+   * Dynamically resolve the root prefix per request/user.
+   *
+   * Useful for:
+   * - multi tenant isolation
+   * - per-user directories
+   * - RBAC scoped storage access
+   *
+   * Example:
+   * resolveRootPrefix: ({ req }) => `tenants/${req.user?.tenantId}/`
+   */
+  resolveRootPrefix?: (args: {
+    req: PayloadRequest
+  }) => string | Promise<string>
+
+  /**
+   * Access control callbacks.
+   * Return true to allow the action.
+   */
+  access?: {
+    canList?: ExplorerAccessFn
+    canDownload?: ExplorerAccessFn
+    canUpload?: ExplorerAccessFn
+    canDelete?: ExplorerAccessFn
+    canCreateFolder?: ExplorerAccessFn
+  }
+
+  /**
+   * Lifecycle hooks.
+   */
+  hooks?: {
+    beforeUpload?: BeforeUploadHook
+    afterUpload?: AfterUploadHook
+
+    beforeDelete?: BeforeDeleteHook
+    afterDelete?: AfterDeleteHook
+  }
 }
 
 const apiBasePath = '/api/s3-explorer'
@@ -76,24 +128,6 @@ export const payloadStorageFileExplorer = (pluginOptions: PayloadStorageFileExpl
     if (!config.collections) {
       config.collections = []
     }
-
-    // if (pluginOptions.collections) {
-    //   for (const collectionSlug in pluginOptions.collections) {
-    //     const collection = config.collections.find(
-    //       (collection) => collection.slug === collectionSlug,
-    //     )
-    //
-    //     if (collection) {
-    //       collection.fields.push({
-    //         name: 'addedByPlugin',
-    //         type: 'text',
-    //         admin: {
-    //           position: 'sidebar',
-    //         },
-    //       })
-    //     }
-    //   }
-    // }
 
     /**
      * If the plugin is disabled, we still want to keep added collections/fields so the database schema is consistent which is important for migrations.

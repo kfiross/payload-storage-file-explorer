@@ -10,21 +10,27 @@ import { S3ExplorerViewClient } from './S3ExplorerViewClient.js'
  * Server Component — wraps the client explorer.
  * Payload's DefaultTemplate is passed via initPageResult for consistent chrome.
  */
-export const S3ExplorerViewServer: React.FC<AdminViewServerProps> = ({
+export const  S3ExplorerViewServer: React.FC<AdminViewServerProps> = async ({
   initPageResult,
   params,
   searchParams,
+  user,
   ...props
 }) => {
   const { apiBasePath, options: pluginOptions } =
     props.payload.config.admin.custom.s3FileExplorer ?? {}
 
+  const canUserDelete = pluginOptions.access?.canDelete ? await pluginOptions.access.canDelete({ req: initPageResult.req }) : pluginOptions.enableDelete ?? true
+  const canUserDownload = pluginOptions.access?.canDownload ? await pluginOptions.access.canDownload({ req: initPageResult.req }) : pluginOptions.enableDownload ?? true
+  const canUserCreateFolders = pluginOptions.access?.canCreateFolders ? await pluginOptions.access.canCreateFolders({ req: initPageResult.req }) : pluginOptions.enableFolderCreate ?? true
+  const canUserUpload = pluginOptions.access?.canUpload ? await pluginOptions.access.canUpload({ req: initPageResult.req }) : pluginOptions.enableUpload ?? true
+
   const clientOptions = {
-    enableDelete: pluginOptions.enableDelete ?? true,
-    enableDownload: pluginOptions.enableDownload ?? true,
-    enableFolderCreate: pluginOptions.enableFolderCreate ?? true,
-    enableUpload: pluginOptions.enableUpload ?? true,
-    maxUploadSize: pluginOptions.maxUploadSize ?? 100 * 1024 * 1024,
+    enableDelete: canUserDelete,
+    enableDownload: canUserDownload,
+    enableFolderCreate: canUserCreateFolders,
+    enableUpload: canUserUpload,
+    maxUploadSize: pluginOptions.maxUploadSize ?? 50 * 1024 * 1024,
     rootPrefix: pluginOptions.rootPrefix ?? '',
   }
 
@@ -40,7 +46,10 @@ export const S3ExplorerViewServer: React.FC<AdminViewServerProps> = ({
       visibleEntities={initPageResult.visibleEntities}
     >
       <Gutter>
-        <S3ExplorerViewClient apiBasePath={apiBasePath} options={clientOptions} />
+        <S3ExplorerViewClient 
+            apiBasePath={apiBasePath} 
+            options={clientOptions} 
+         />
       </Gutter>
     </DefaultTemplate>
   )

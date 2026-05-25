@@ -42,8 +42,7 @@ const calcFolderInfo = async (client, bucket, prefix, continuationToken)=>{
             }
         }
         continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
-    }while (continuationToken)
-    console.log('totalSize=', totalSize);
+    } while (continuationToken)
     return {
         lastModified,
         size: totalSize
@@ -63,7 +62,6 @@ const calcFolderInfo = async (client, bucket, prefix, continuationToken)=>{
     const foldersSizesPromises = [];
     const foldersNames = response.CommonPrefixes ?? [];
     for (const folder of foldersNames){
-        console.log('folder.Prefix=', folder.Prefix);
         foldersSizesPromises.push(calcFolderInfo(client, bucket, folder.Prefix));
     }
     const foldersSizes = await Promise.all(foldersSizesPromises);
@@ -112,7 +110,7 @@ const calcFolderInfo = async (client, bucket, prefix, continuationToken)=>{
  * Generate a presigned POST for direct browser → S3 upload.
  * Using POST (vs PUT) gives us size/type constraints server-side.
  */ export async function createPresignedUploadPost(client, bucket, key, options = {}) {
-    const { allowedMimeTypes = '*', expiresIn = 600, maxSizeBytes = 100 * 1024 * 1024 } = options;
+    const { allowedMimeTypes = '*', expiresIn = 600, maxSizeBytes = 50 * 1024 * 1024 } = options;
     const conditions = [
         [
             'content-length-range',

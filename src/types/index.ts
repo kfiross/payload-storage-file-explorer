@@ -1,3 +1,5 @@
+import { PayloadRequest } from "payload"
+
 export type StorageFileExplorerAdapterOptions<T extends string = string> = {
   storageType: T
 }
@@ -84,3 +86,42 @@ export interface ApiResponse<T = unknown> {
   success: boolean
 }
 export {}
+
+export type ExplorerAccessArgs = {
+  key?: string
+  prefix?: string
+  req: PayloadRequest
+}
+
+export type ExplorerAccessFn = (
+  args: ExplorerAccessArgs,
+) => boolean | Promise<boolean>
+
+export type ExplorerHookArgs = {
+  file?: File
+  key?: string
+  prefix?: string
+  req: PayloadRequest
+}
+
+export type BeforeUploadHook = (
+  args: ExplorerHookArgs,
+) => void | Promise<void>
+
+export type AfterUploadHook = (
+  args: ExplorerHookArgs & {
+    uploadedKey: string
+  },
+) => void | Promise<void>
+
+export type BeforeDeleteHook = (
+  args: ExplorerHookArgs & {
+    key: string
+  },
+) => void | Promise<void>
+
+export type AfterDeleteHook = (
+  args: ExplorerHookArgs & {
+    key: string
+  },
+) => void | Promise<void>

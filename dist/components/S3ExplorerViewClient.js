@@ -958,7 +958,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }) {
         setPreview({
             name,
             key: file.key,
-            lastModified: file.lastModified.toLocaleDateString(),
+            lastModified: file.lastModified?.toString(),
             size: file.size
         });
         try {

@@ -456,6 +456,7 @@ interface ExplorerProps {
     | 'enableUpload'
     | 'maxUploadSize'
     | 'rootPrefix'
+    | 'access'
   >
 }
 
@@ -795,18 +796,31 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
     try {
       if (deleteModal.type === 'bulk') {
         const keys = Array.from(selected).filter((k) => !k.endsWith('/'))
-        await Promise.all(
-          keys.map((key) =>
-            fetch(`${apiBasePath}/delete`, {
-              body: JSON.stringify({ key }),
-              headers: { 'Content-Type': 'application/json' },
-              method: 'DELETE',
+        try {
+          await Promise.all(
+            keys.map(async (key) => {
+              const response = await fetch(`${apiBasePath}/delete`, {
+                body: JSON.stringify({ key }),
+                headers: { 'Content-Type': 'application/json' },
+                method: 'DELETE',
+              });
+
+              // Fetch resolves successfully for 403, so we must manually check !ok
+              if (!response.ok) {
+                throw new Error(`Failed to delete. Status: ${response.status}`);
+              }
+              return response;
             }),
-          ),
-        )
-        payloadToast.success(`Deleted ${keys.length} file(s)`)
-        setSelected(new Set())
-        setPreview(null)
+          );
+
+            payloadToast.success(`Deleted ${keys.length} file(s)`);
+          } catch (error) {
+            payloadToast.error("Failed to delete files. You may not have permission.");
+          }
+          finally {
+            setSelected(new Set())
+            setPreview(null)
+          }
       } 
       else {
         const body =
@@ -1013,11 +1027,11 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
               slug={folderDrawerSlug}
               style={{ background: 'none', border: 'none', padding: '0px' }}
             >
-              {/* el="span" prevents a <button> inside <button> warning */}
+              {/* el="div" prevents a <button> inside <button> warning */}
               <div style={{ marginBottom: 0 }}>
-                <Button buttonStyle="secondary" el="button" size="medium">
+                <Button buttonStyle="secondary" el="div" size="medium">
                   <Icon.FolderPlus />
-                  &nbsp;New Folder
+                  &nbsp;&nbsp;New Folder
                 </Button>
               </div>
             </DrawerToggler>
@@ -1030,7 +1044,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
               size="medium"
             >
               <Icon.Upload />
-              &nbsp;Upload Files
+              &nbsp;&nbsp;Upload Files
             </Button>
           )}
 
@@ -1040,7 +1054,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
             size="medium"
           >
             <Icon.Refresh />
-            &nbsp;Refresh
+            &nbsp;&nbsp;Refresh
           </Button>
         </div>
       </div>
