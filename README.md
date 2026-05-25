@@ -67,6 +67,18 @@ export default buildConfig({
 
       // Optional: scope to a subfolder
       // rootPrefix: 'uploads/',
+
+      // Optional: scope operation per users
+      access: {
+        canUpload: async ({ req }) => {
+          'use server'
+          return Boolean(req.user) && req?.user?.role === 'admin';
+        },
+        canDelete: async ({ req }) => {
+          'use server'
+          return Boolean(req.user) && req?.user?.email === 'super-admin';
+        }
+      },
     }),
   ],
 })
@@ -74,18 +86,20 @@ export default buildConfig({
 
 - **Configuration options**
 
-- **adapterOptions**: required adapter configuration. Currently the plugin supports an S3-compatible adapter; see `S3ExplorerPluginOptions` in [src/types/index.ts](src/types/index.ts).
-- **adminRoute**: admin path where the view is mounted. Default: `/explorer`.
-- **enableDelete**: allow deleting objects/prefixes. Default: `true`.
-- **enableDownload**: enable presigned downloads. Default: `true`.
-- **enableFolderCreate**: allow creating folders. Default: `true`.
-- **enableUpload**: allow uploads. Default: `true`.
-- **maxUploadSize**: max upload size in bytes. Default: `100 * 1024 * 1024` (100 MB).
-- **navigationLabel**: label for admin sidebar. Default: `File Explorer`.
-- **presignedUrlExpiry**: presigned GET expiry in seconds. Default: `3600`.
-- **rootPrefix**: optional root prefix to scope explorer to a subfolder. Default: `''`.
+| Option | Description | Default |
+| --- | --- | --- |
+| **`adapterOptions`** | Required adapter configuration. Currently the plugin supports an S3-compatible adapter; see `S3ExplorerPluginOptions`. | *Required* |
+| **`adminRoute`** | Admin path where the view is mounted. | `/explorer` |
+| **`enableDelete`** | Allow deleting objects/prefixes. | `true` |
+| **`enableDownload`** | Enable presigned downloads. | `true` |
+| **`enableFolderCreate`** | Allow creating folders. | `true` |
+| **`enableUpload`** | Allow uploads. | `true` |
+| **`maxUploadSize`** | Max upload size in bytes. | `100 * 1024 * 1024` (100 MB) |
+| **`navigationLabel`** | Label for admin sidebar. | `File Explorer` |
+| **`presignedUrlExpiry`** | Presigned GET expiry in seconds. | `3600` |
+| **`rootPrefix`** | Optional root prefix to scope explorer to a subfolder. | `''` |
+| **`access`** | Optional access callbacks to control per-operation permissions. Supported callbacks: <br>`canList`, <br>`canDownload`, <br>`canUpload`, <br>`canDelete`, <br>`canCreateFolder`.<br><br> Each callback receives an object with `{ req, key?, prefix?, item? }` and may be async; return `true` to allow the operation for the current user/item.<br> If omitted, global `enable_X` booleans control behavior. | `-`
 
-See [src/index.ts](src/index.ts) for the authoritative defaults and wiring.
 
 ### API Endpoints
 
@@ -129,22 +143,6 @@ Use the `s3ExplorerPluginOptions()` helper to build S3 adapter options. Supporte
 
 The plugin will fall back to environment credentials / IAM role if `credentials` are omitted.
 
-**Admin UI**
-
-- Mounts a server-wrapped RSC at the configured `adminRoute` using `S3ExplorerViewServer`.
-- Client features include grid/list views, file/folder metadata, previews (images, PDFs), drag & drop upload, create-folder drawer, selection, sorting and bulk actions. See [src/components/S3ExplorerViewClient.tsx](src/components/S3ExplorerViewClient.tsx) for implementation details.
-
-**Development**
-
-- Repo layout: plugin code is in `src/`, a local dev Payload app is in `dev/`.
-- To run the dev app (from project root):
-
-```bash
-pnpm install
-pnpm --filter ./dev dev
-```
-
-Or change into the `dev` folder and run the app with your package manager. Ensure you copy `.env.example` → `.env` and set `DATABASE_URL` and `PAYLOAD_SECRET` before running.
 
 **License & support**
 
