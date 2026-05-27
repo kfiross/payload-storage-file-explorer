@@ -117,6 +117,12 @@ export type PayloadStorageFileExplorerConfig = {
     beforeDelete?: BeforeDeleteHook
     afterDelete?: AfterDeleteHook
   }
+
+  /**
+   * Title shown in the Payload page title of the explorer.
+   * @default 'S3 File Explorer'
+   */
+  pageTitle?: string
 }
 
 const apiBasePath = '/api/s3-explorer'
