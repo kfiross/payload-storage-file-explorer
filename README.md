@@ -42,9 +42,7 @@ export default buildConfig({
           secretAccessKey: process.env.S3_SECRET_KEY!,
         },
         endpoint: process.env.S3_ENDPOINT!,
-        region: 'eu-west-3',
-        // Optional: limits
-        allowedMimeTypes: ['image/*', 'application/pdf', 'video/*'],
+        region: process.enn.S3_REGION,
         forcePathStyle: true,
         storageType: 's3',
       }),
@@ -67,6 +65,18 @@ export default buildConfig({
 
       // Optional: scope to a subfolder
       // rootPrefix: 'uploads/',
+
+      // Optional: limit files types to be uploaded, also by extension
+      allowedMimeTypes: [
+        'image/*',
+        'application/pdf',
+        'video/*'
+      ],
+      allowedExtensions: [
+        'png',
+        'pdf',
+        'mp4'
+      ],
 
       // Optional: scope operation per users
       access: {
@@ -100,6 +110,8 @@ export default buildConfig({
 | **`rootPrefix`**         | Optional root prefix to scope explorer to a subfolder.                                                                                                                                                                                                                                                                                                                                                       | `''` |
 | **`access`**             | Optional access callbacks to control per-operation permissions. Supported callbacks: <br>`canList`, <br>`canDownload`, <br>`canUpload`, <br>`canDelete`, <br>`canCreateFolder`.<br><br> Each callback receives an object with `{ req, key?, prefix?, item? }` and may be async; return `true` to allow the operation for the current user/item.<br> If omitted, global `enable_X` booleans control behavior. | `-`
 | **`pageTitle`**          | Optional naming to page title                                                                                                                                                                                                                                                                                                                                                                                | `S3 File explorer`
+| **`allowedMimeTypes`**   | Allowed files to be upladed by their MIME type                                                                                                                                                                                                                                                                                                                                                               | `*` (Any)
+| **`allowedExtensions`**  | Allowed files to be uploaded by their extension                                                                                                                                                                                                                                                                                                                                                              | `*` (Any)
 
 ### API Endpoints
 
@@ -132,14 +144,13 @@ This plugin is built to support interchangeable storage adapters. At present it 
 
 **S3 (current)**
 
-Use the `s3ExplorerPluginOptions()` helper to build S3 adapter options. Supported S3 adapter options (see [src/types/index.ts](src/types/index.ts)):
+Use the `s3ExplorerPluginOptions()` helper to build S3 adapter options. Supported S3 adapter options:
 
 - `bucket` (string) — required S3 bucket name.
 - `region` (string) — AWS region.
 - `credentials` — optional `{ accessKeyId, secretAccessKey, sessionToken? }`.
 - `endpoint` — optional custom endpoint (MinIO, LocalStack).
 - `forcePathStyle` — boolean for path-style URLs (MinIO/local testing).
-- `allowedMimeTypes` — `'*'` or array of MIME types to restrict uploads.
 
 The plugin will fall back to environment credentials / IAM role if `credentials` are omitted.
 
