@@ -123,6 +123,19 @@ export type PayloadStorageFileExplorerConfig = {
    * @default 'S3 File Explorer'
    */
   pageTitle?: string
+
+  /**
+   * Allowed MIME types for uploads.
+   * Example: ['image/jpeg', 'image/png', 'application/zip']
+   * If not provided, defaults to all types.
+   */
+  allowedMimeTypes?: string[]
+
+  /**
+   * Allowed file extensions. 
+   * Example: ['.zip', '.jpg', '.pdf']
+   */
+  allowedExtensions?: string[]
 }
 
 const apiBasePath = '/api/s3-explorer'

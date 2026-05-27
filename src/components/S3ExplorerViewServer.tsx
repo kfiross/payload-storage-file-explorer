@@ -32,7 +32,9 @@ export const  S3ExplorerViewServer: React.FC<AdminViewServerProps> = async ({
     enableUpload: canUserUpload,
     maxUploadSize: pluginOptions.maxUploadSize ?? 50 * 1024 * 1024,
     rootPrefix: pluginOptions.rootPrefix ?? '',
-    pageTitle: pluginOptions.pageTitle ?? 'S3 File Explorer'
+    pageTitle: pluginOptions.pageTitle ?? 'S3 File Explorer',
+    allowedMimeTypes: pluginOptions.allowedMimeTypes,
+    allowedExtensions: pluginOptions.allowedExtensions,
   }
 
   return (

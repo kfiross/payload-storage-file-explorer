@@ -12,6 +12,7 @@ export interface S3ExplorerPluginOptions extends StorageFileExplorerAdapterOptio
   /**
    * Allowed MIME types for upload. Accepts '*' to allow all.
    * @default '*'
+   * @deprecated This option is deprecated in favor of `allowedMimeTypes` on Plugin-level options.
    */
   allowedMimeTypes?: '*' | string[]
   /**

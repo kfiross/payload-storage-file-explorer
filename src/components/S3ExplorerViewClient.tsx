@@ -458,6 +458,8 @@ interface ExplorerProps {
     | 'rootPrefix'
     | 'access'
     | 'pageTitle'
+    | 'allowedExtensions'
+    | 'allowedMimeTypes'
   >
 }
 
@@ -1690,6 +1692,10 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
             void uploadFiles(e.target.files)
           }
         }}
+        accept={[
+            ...(options.allowedExtensions?.map((ext) => `.${ext}`) || []),
+            ...(Array.isArray(options.allowedMimeTypes) ? options.allowedMimeTypes : [])
+        ].join(',')}
         ref={fileInputRef}
         style={{ display: 'none' }}
         type="file"
