@@ -457,6 +457,7 @@ interface ExplorerProps {
     | 'maxUploadSize'
     | 'rootPrefix'
     | 'access'
+    | 'pageTitle'
   >
 }
 
@@ -1000,7 +1001,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
       <div style={S.header}>
         <h2 style={S.title}>
           <Icon.Folder />
-          <span>S3 File Explorer</span>
+          <span>{options.pageTitle}</span>
         </h2>
         <div style={S.headerActions}>
           {/* List / Grid toggle */}
@@ -1028,10 +1029,15 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
               style={{ background: 'none', border: 'none', padding: '0px' }}
             >
               {/* el="div" prevents a <button> inside <button> warning */}
-              <div style={{ marginBottom: 0 }}>
+              <div style={{ 
+                marginBottom: 0 ,
+                alignItems: 'center',
+                }}>
                 <Button buttonStyle="secondary" el="div" size="medium">
-                  <Icon.FolderPlus />
-                  &nbsp;&nbsp;New Folder
+                  <div style={{display: 'flex', alignItems: 'center', gap: 7}}>
+                    <Icon.FolderPlus />
+                    <div>{"New Folder"}</div>
+                  </div>
                 </Button>
               </div>
             </DrawerToggler>
@@ -1043,8 +1049,10 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
               onClick={() => fileInputRef.current?.click()}
               size="medium"
             >
-              <Icon.Upload />
-              &nbsp;&nbsp;Upload Files
+              <div style={{display: 'flex', alignItems: 'center', gap: 7}}>
+                <Icon.Upload />
+                <div>{"Upload Files"}</div>
+              </div>
             </Button>
           )}
 
@@ -1053,8 +1061,10 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
             onClick={() => void fetchListing(prefix)}
             size="medium"
           >
-            <Icon.Refresh />
-            &nbsp;&nbsp;Refresh
+            <div style={{display: 'flex', alignItems: 'center', gap: 7}}>
+              <Icon.Refresh />
+              <div>{"Refresh"}</div>
+            </div>
           </Button>
         </div>
       </div>
