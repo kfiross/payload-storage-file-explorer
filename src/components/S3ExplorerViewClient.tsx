@@ -1072,7 +1072,8 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
       </div>
 
       {/* ── Breadcrumbs ───────────────────────────────────────────────────── */}
-      <nav style={S.breadcrumb}>
+      <nav style={S.navbar} onContextMenu={handleContextMenu}>
+        <div style={S.breadcrumb}>
         {breadcrumbs.map((crumb, i) => (
           <React.Fragment key={crumb.prefix}>
             {i > 0 && (
@@ -1090,40 +1091,45 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
             </button>
           </React.Fragment>
         ))}
+        </div>
+        
+        <div>
+          {/* ── Bulk action bar ───────────────────────────────────────────────── */}          
+          {someSelected && (
+            <div style={S.bulkBar}>
+              <span style={S.bulkCount}>{selected.size} selected</span>
+              <div style={{ display: 'flex', gap: 12 }}>
+                {canDownload && (
+                  <Button buttonStyle="secondary" onClick={downloadSelected} size="small">
+                    <Icon.Download />
+                    &nbsp;Download All
+                  </Button>
+                )}
+                {canDelete && (
+                  <Button
+                    buttonStyle="primary"
+                    onClick={() => setDeleteModal({ type: 'bulk', key: '' })}
+                    size="small"
+                    //@ts-ignore
+                    style={{
+                      borderColor: 'var(--theme-error-300, #fca5a5)',
+                      color: 'var(--theme-error-500, #ef4444)',
+                    }}
+                  >
+                    <Icon.Trash />
+                    &nbsp;Delete All
+                  </Button>
+                )}
+                <Button buttonStyle="secondary" onClick={() => setSelected(new Set())} size="small">
+                  <Icon.X />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </nav>
 
-      {/* ── Bulk action bar ───────────────────────────────────────────────── */}
-      {someSelected && (
-        <div style={S.bulkBar}>
-          <span style={S.bulkCount}>{selected.size} selected</span>
-          <div style={{ display: 'flex', gap: 12 }}>
-            {canDownload && (
-              <Button buttonStyle="secondary" onClick={downloadSelected} size="small">
-                <Icon.Download />
-                &nbsp;Download All
-              </Button>
-            )}
-            {canDelete && (
-              <Button
-                buttonStyle="primary"
-                onClick={() => setDeleteModal({ type: 'bulk', key: '' })}
-                size="small"
-                //@ts-ignore
-                style={{
-                  borderColor: 'var(--theme-error-300, #fca5a5)',
-                  color: 'var(--theme-error-500, #ef4444)',
-                }}
-              >
-                <Icon.Trash />
-                &nbsp;Delete All
-              </Button>
-            )}
-            <Button buttonStyle="secondary" onClick={() => setSelected(new Set())} size="small">
-              <Icon.X />
-            </Button>
-          </div>
-        </div>
-      )}
+
 
       {/* ── Upload progress ───────────────────────────────────────────────── */}
       {uploads.length > 0 && (
@@ -1170,7 +1176,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
         style={{
           alignItems: 'flex-start',
           display: 'flex',
-          height: selected.size == 0 ? 512 : 452,
+          height: 512,
           gap: 16,
         }}
       >
@@ -1185,8 +1191,11 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
             ...(isDragging ? S.dropZoneActive : {}),
             flex: 1,
             minWidth: 0,
+            minHeight: 0,
             width: '100%',
             height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           {isDragging && (
@@ -1210,7 +1219,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }: ExplorerProps) {
 
           {/* LIST VIEW */}
           {!loading && !error && viewMode === 'list' && (
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, }}>
               <div style={S.tableHeader}>
                 <div style={{ flexShrink: 0, width: 28 }}>
                   <button
@@ -1784,16 +1793,29 @@ const S: Record<string, React.CSSProperties> = {
     padding: '4px 6px',
     transition: 'background 0.1s, color 0.1s',
   },
-  breadcrumb: {
+  navbar: {
     alignItems: 'center',
-    background: 'var(--theme-elevation-50)',
-    border: '1px solid var(--theme-elevation-150)',
+    justifyContent: 'center',
     borderRadius: 8,
     display: 'flex',
     flexWrap: 'wrap',
+    flexDirection: 'row',
     fontSize: 13,
     gap: 4,
+    background: 'var(--theme-elevation-50)',
+    border: '1px solid var(--theme-elevation-150)',
     marginBottom: 16,
+  },
+  breadcrumb: {
+    alignItems: 'center',
+    borderRadius: 8,
+    display: 'flex',
+    flex: 1,
+    flexWrap: 'wrap',
+    fontSize: 13,
+    gap: 4,
+    height: 42,
+    // marginBottom: 16,
     padding: '8px 12px',
   },
   breadcrumbActive: {
@@ -1818,15 +1840,15 @@ const S: Record<string, React.CSSProperties> = {
   breadcrumbSep: { alignItems: 'center', color: 'var(--theme-elevation-400)', display: 'flex' },
   bulkBar: {
     alignItems: 'center',
-    background: 'var(--theme-elevation-50)',
-    border: '1px solid var(--theme-elevation-150)',
+    // background: 'var(--theme-elevation-50)',
+    // border: '1px solid var(--theme-elevation-150)',
     borderRadius: 8,
     display: 'flex',
-    gap: 12,
-    height: '48px',
+    gap: '24px',
+    height: '42px',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    padding: '8px 16px',
+    // marginBottom: 12,
+    padding: '0px 16px',
   },
   bulkCount: { color: 'var(--theme-text)', fontSize: 13, fontWeight: 600 },
   card: {
@@ -1927,6 +1949,7 @@ const S: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
     position: 'relative',
     transition: 'border-color 0.2s, box-shadow 0.2s',
+    
   },
   dropZoneActive: {
     borderColor: 'var(--theme-elevation-1000)',
@@ -1961,6 +1984,8 @@ const S: Record<string, React.CSSProperties> = {
     gap: 12,
     gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
     padding: 16,
+    overflowY: 'auto',
+    minHeight: 0
   },
   header: {
     alignItems: 'center',
@@ -2147,7 +2172,7 @@ const S: Record<string, React.CSSProperties> = {
     fontSize: 12,
     justifyContent: 'space-between',
     marginTop: 8,
-    padding: '6px 4px',
+    padding: '6px 14px',
   },
   tableHeader: {
     alignItems: 'center',
@@ -2158,6 +2183,9 @@ const S: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     letterSpacing: '0.05em',
     padding: '8px 16px',
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
   },
   title: {
     alignItems: 'center',
