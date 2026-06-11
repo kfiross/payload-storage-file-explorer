@@ -14,14 +14,9 @@ import type { PayloadHandler, PayloadRequest } from 'payload'
 import type { PayloadStorageFileExplorerConfig } from '../index.js'
 
 import {
-  createPresignedUploadPost,
-  createS3Client,
-  createS3Folder,
-  deleteS3Object,
-  deleteS3Prefix,
-  getPresignedDownloadUrl,
-  listS3Objects,
+  S3Service,
 } from '../lib/s3Service.js'
+import { storageServiceFactory } from 'src/lib/utils.js'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -95,7 +90,7 @@ async function resolveStoragePath({
 // ─── list ─────────────────────────────────────────────────────────────────────
 
 /**
- * GET /api/s3-explorer/list?prefix=some/path/&token=<continuationToken>
+ * GET /api/file-explorer/list?prefix=some/path/&token=<continuationToken>
  * Returns { success, data: S3ListResult }
  */
 export function makeListHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler {
@@ -119,9 +114,8 @@ export function makeListHandler(options: PayloadStorageFileExplorerConfig): Payl
         return json({ error: 'Forbidden', success: false }, 403)
       }
 
-      const client = createS3Client(adapterOptions)
-      const result = await listS3Objects(
-        client,
+      const client = storageServiceFactory(adapterOptions)
+      const result = await client.listObjects(
         adapterOptions.bucket,
         safePrefix,
         continuationToken,
@@ -140,7 +134,7 @@ export function makeListHandler(options: PayloadStorageFileExplorerConfig): Payl
 // ─── upload (presign) ─────────────────────────────────────────────────────────
 
 /**
- * POST /api/s3-explorer/upload
+ * POST /api/file-explorer/upload
  * Body: { prefix, filename, contentType }
  * Returns { success, data: { url, fields, key } }  — client POSTs directly to S3.
  */
@@ -179,8 +173,8 @@ export function makeUploadHandler(options: PayloadStorageFileExplorerConfig): Pa
         return json({ error: 'Forbidden', success: false }, 403)
       }
 
-      const client = createS3Client(adapterOptions)
-      const result = await createPresignedUploadPost(client, adapterOptions.bucket, key, {
+      const client = new S3Service(adapterOptions)
+      const result = await client.createUploadPost(adapterOptions.bucket, key, {
         allowedMimeTypes: adapterOptions.allowedMimeTypes,
         expiresIn: 600,
         maxSizeBytes: options.maxUploadSize,
@@ -199,7 +193,7 @@ export function makeUploadHandler(options: PayloadStorageFileExplorerConfig): Pa
 // ─── delete ───────────────────────────────────────────────────────────────────
 
 /**
- * DELETE /api/s3-explorer/delete
+ * DELETE /api/file-explorer/delete
  * Body: { key } for a single file  OR  { prefix } for an entire folder (recursive).
  * Returns { success, data: { key } | { deleted: number } }
  */
@@ -218,7 +212,7 @@ export function makeDeleteHandler(options: PayloadStorageFileExplorerConfig): Pa
       // @ts-ignore
       const body = (await req.json()) as { key?: string; prefix?: string }
       const { key, prefix } = body
-      const client = createS3Client(adapterOptions)
+      const client = storageServiceFactory(adapterOptions)
 
       if (prefix) {
         const { prefix: safePrefix, rootPrefix } = await resolveStoragePath({
@@ -236,7 +230,7 @@ export function makeDeleteHandler(options: PayloadStorageFileExplorerConfig): Pa
           return json({ error: 'Access denied', success: false }, 403)
         }
 
-        const { deleted } = await deleteS3Prefix(client, adapterOptions.bucket, safePrefix)
+        const { deleted } = await client.deletePrefix(adapterOptions.bucket, safePrefix)
         return json({ data: { deleted }, success: true })
       }
 
@@ -258,7 +252,7 @@ export function makeDeleteHandler(options: PayloadStorageFileExplorerConfig): Pa
           return json({ error: 'Forbidden', success: false }, 403)
         }
 
-        await deleteS3Object(client, adapterOptions.bucket, safeKey!)
+        await client.deleteObject(adapterOptions.bucket, safeKey!)
         return json({ data: { key: safeKey }, success: true })
       }
 
@@ -275,7 +269,7 @@ export function makeDeleteHandler(options: PayloadStorageFileExplorerConfig): Pa
 // ─── folder create ────────────────────────────────────────────────────────────
 
 /**
- * POST /api/s3-explorer/folder
+ * POST /api/file-explorer/folder
  * Body: { prefix, name }
  * Returns { success, data: { folderKey } }
  */
@@ -316,8 +310,8 @@ export function makeFolderHandler(options: PayloadStorageFileExplorerConfig): Pa
           return json({ error: 'Forbidden', success: false }, 403)
       }
 
-      const client = createS3Client(adapterOptions)
-      await createS3Folder(client, adapterOptions.bucket, folderKey)
+      const client = storageServiceFactory(adapterOptions)
+      await client.createFolder(adapterOptions.bucket, folderKey)
 
       return json({ data: { folderKey }, success: true })
     } catch (err: unknown) {
@@ -333,7 +327,7 @@ export function makeFolderHandler(options: PayloadStorageFileExplorerConfig): Pa
 // ─── download (presign) ───────────────────────────────────────────────────────
 
 /**
- * GET /api/s3-explorer/download?key=some/path/file.jpg
+ * GET /api/file-explorer/download?key=some/path/file.jpg
  * Returns { success, data: { url, key } }  — presigned GET URL.
  */
 export function makeDownloadHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler {
@@ -365,9 +359,8 @@ export function makeDownloadHandler(options: PayloadStorageFileExplorerConfig): 
         return json({ error: 'Access denied', success: false }, 403)
       }
 
-      const client = createS3Client(adapterOptions)
-      const presignedUrl = await getPresignedDownloadUrl(
-        client,
+      const client = storageServiceFactory(adapterOptions)
+      const presignedUrl = await client.getDownloadUrl(
         adapterOptions.bucket,
         safeKey!,
         options.presignedUrlExpiry ?? 3600,

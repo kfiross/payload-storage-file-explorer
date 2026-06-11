@@ -138,7 +138,7 @@ export type PayloadStorageFileExplorerConfig = {
   allowedExtensions?: string[]
 }
 
-const apiBasePath = '/api/s3-explorer'
+const apiBasePath = '/api/file-explorer'
 
 export const payloadStorageFileExplorer = (pluginOptions: PayloadStorageFileExplorerConfig) => {
   return (config: Config): Config => {
@@ -204,27 +204,27 @@ export const payloadStorageFileExplorer = (pluginOptions: PayloadStorageFileExpl
       {
         handler: makeListHandler(pluginOptions),
         method: 'get',
-        path: '/s3-explorer/list',
+        path: '/file-explorer/list',
       },
       {
         handler: makeDownloadHandler(pluginOptions),
         method: 'get',
-        path: '/s3-explorer/download',
+        path: '/file-explorer/download',
       },
       {
         handler: makeUploadHandler(pluginOptions),
         method: 'post',
-        path: '/s3-explorer/upload',
+        path: '/file-explorer/upload',
       },
       {
         handler: makeFolderHandler(pluginOptions),
         method: 'post',
-        path: '/s3-explorer/folder',
+        path: '/file-explorer/folder',
       },
       {
         handler: makeDeleteHandler(pluginOptions),
         method: 'delete',
-        path: '/s3-explorer/delete',
+        path: '/file-explorer/delete',
       },
     ]
 

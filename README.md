@@ -115,26 +115,26 @@ export default buildConfig({
 
 ### API Endpoints
 
-All endpoints are registered on the plugin and available under `/api/s3-explorer`.
+All endpoints are registered on the plugin and available under `/api/file-explorer`.
 
-- GET `/api/s3-explorer/list?prefix=<prefix>&token=<continuationToken>`
+- GET `/api/file-explorer/list?prefix=<prefix>&token=<continuationToken>`
   - Response: `{ success: true, data: S3ListResult }`
-- GET `/api/s3-explorer/download?key=<objectKey>`
+- GET `/api/file-explorer/download?key=<objectKey>`
   - Returns a presigned GET URL: `{ success: true, data: { key, url } }`
-- POST `/api/s3-explorer/upload`
+- POST `/api/file-explorer/upload`
   - Body: `{ prefix, filename, contentType }`
   - Returns presigned POST details: `{ success: true, data: { url, fields, key } }`
-- POST `/api/s3-explorer/folder`  — create new folder placeholder
+- POST `/api/file-explorer/folder`  — create new folder placeholder
   - Body: `{ prefix, name }` → `{ success: true, data: { folderKey } }`
-- DELETE `/api/s3-explorer/delete`
+- DELETE `/api/file-explorer/delete`
   - Body: `{ key }` deletes a single object OR `{ prefix }` deletes all objects under that prefix (recursive)
 
 Examples (list & download):
 
 ```bash
-curl 'http://localhost:3000/api/s3-explorer/list?prefix=media/'
+curl 'http://localhost:3000/api/file-explorer/list?prefix=media/'
 
-curl 'http://localhost:3000/api/s3-explorer/download?key=media/example.jpg'
+curl 'http://localhost:3000/api/file-explorer/download?key=media/example.jpg'
 ```
 
 ## Adapters
