@@ -881,18 +881,30 @@ export function S3ExplorerViewClient({ apiBasePath, options }) {
         try {
             if (deleteModal.type === 'bulk') {
                 const keys = Array.from(selected).filter((k)=>!k.endsWith('/'));
-                await Promise.all(keys.map((key)=>fetch(`${apiBasePath}/delete`, {
-                        body: JSON.stringify({
-                            key
-                        }),
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        method: 'DELETE'
-                    })));
-                payloadToast.success(`Deleted ${keys.length} file(s)`);
-                setSelected(new Set());
-                setPreview(null);
+                try {
+                    await Promise.all(keys.map(async (key)=>{
+                        const response = await fetch(`${apiBasePath}/delete`, {
+                            body: JSON.stringify({
+                                key
+                            }),
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            method: 'DELETE'
+                        });
+                        // Fetch resolves successfully for 403, so we must manually check !ok
+                        if (!response.ok) {
+                            throw new Error(`Failed to delete. Status: ${response.status}`);
+                        }
+                        return response;
+                    }));
+                    payloadToast.success(`Deleted ${keys.length} file(s)`);
+                } catch (error) {
+                    payloadToast.error("Failed to delete files. You may not have permission.");
+                } finally{
+                    setSelected(new Set());
+                    setPreview(null);
+                }
             } else {
                 const body = deleteModal.type === 'folder' ? {
                     prefix: deleteModal.key
@@ -1082,7 +1094,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }) {
                         children: [
                             /*#__PURE__*/ _jsx(Icon.Folder, {}),
                             /*#__PURE__*/ _jsx("span", {
-                                children: "S3 File Explorer"
+                                children: options.pageTitle
                             })
                         ]
                     }),
@@ -1121,108 +1133,144 @@ export function S3ExplorerViewClient({ apiBasePath, options }) {
                                 },
                                 children: /*#__PURE__*/ _jsx("div", {
                                     style: {
-                                        marginBottom: 0
+                                        marginBottom: 0,
+                                        alignItems: 'center'
                                     },
-                                    children: /*#__PURE__*/ _jsxs(Button, {
+                                    children: /*#__PURE__*/ _jsx(Button, {
                                         buttonStyle: "secondary",
-                                        el: "button",
+                                        el: "div",
                                         size: "medium",
-                                        children: [
-                                            /*#__PURE__*/ _jsx(Icon.FolderPlus, {}),
-                                            " New Folder"
-                                        ]
+                                        children: /*#__PURE__*/ _jsxs("div", {
+                                            style: {
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 7
+                                            },
+                                            children: [
+                                                /*#__PURE__*/ _jsx(Icon.FolderPlus, {}),
+                                                /*#__PURE__*/ _jsx("div", {
+                                                    children: "New Folder"
+                                                })
+                                            ]
+                                        })
                                     })
                                 })
                             }),
-                            canUpload && /*#__PURE__*/ _jsxs(Button, {
+                            canUpload && /*#__PURE__*/ _jsx(Button, {
                                 buttonStyle: "primary",
                                 onClick: ()=>fileInputRef.current?.click(),
                                 size: "medium",
-                                children: [
-                                    /*#__PURE__*/ _jsx(Icon.Upload, {}),
-                                    " Upload Files"
-                                ]
+                                children: /*#__PURE__*/ _jsxs("div", {
+                                    style: {
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 7
+                                    },
+                                    children: [
+                                        /*#__PURE__*/ _jsx(Icon.Upload, {}),
+                                        /*#__PURE__*/ _jsx("div", {
+                                            children: "Upload Files"
+                                        })
+                                    ]
+                                })
                             }),
-                            /*#__PURE__*/ _jsxs(Button, {
+                            /*#__PURE__*/ _jsx(Button, {
                                 buttonStyle: "secondary",
                                 onClick: ()=>void fetchListing(prefix),
                                 size: "medium",
-                                children: [
-                                    /*#__PURE__*/ _jsx(Icon.Refresh, {}),
-                                    " Refresh"
-                                ]
+                                children: /*#__PURE__*/ _jsxs("div", {
+                                    style: {
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 7
+                                    },
+                                    children: [
+                                        /*#__PURE__*/ _jsx(Icon.Refresh, {}),
+                                        /*#__PURE__*/ _jsx("div", {
+                                            children: "Refresh"
+                                        })
+                                    ]
+                                })
                             })
                         ]
                     })
                 ]
             }),
-            /*#__PURE__*/ _jsx("nav", {
-                style: S.breadcrumb,
-                children: breadcrumbs.map((crumb, i)=>/*#__PURE__*/ _jsxs(React.Fragment, {
-                        children: [
-                            i > 0 && /*#__PURE__*/ _jsx("span", {
-                                style: S.breadcrumbSep,
-                                children: /*#__PURE__*/ _jsx(Icon.ChevronRight, {})
-                            }),
-                            /*#__PURE__*/ _jsx("button", {
-                                className: i < breadcrumbs.length - 1 ? 's3x-bc' : '',
-                                disabled: i === breadcrumbs.length - 1,
-                                onClick: ()=>setPrefix(crumb.prefix),
-                                style: i === breadcrumbs.length - 1 ? S.breadcrumbActive : S.breadcrumbBtn,
-                                children: crumb.label
-                            })
-                        ]
-                    }, crumb.prefix))
-            }),
-            someSelected && /*#__PURE__*/ _jsxs("div", {
-                style: S.bulkBar,
+            /*#__PURE__*/ _jsxs("nav", {
+                style: S.navbar,
+                onContextMenu: handleContextMenu,
                 children: [
-                    /*#__PURE__*/ _jsxs("span", {
-                        style: S.bulkCount,
-                        children: [
-                            selected.size,
-                            " selected"
-                        ]
-                    }),
-                    /*#__PURE__*/ _jsxs("div", {
-                        style: {
-                            display: 'flex',
-                            gap: 12
-                        },
-                        children: [
-                            canDownload && /*#__PURE__*/ _jsxs(Button, {
-                                buttonStyle: "secondary",
-                                onClick: downloadSelected,
-                                size: "small",
+                    /*#__PURE__*/ _jsx("div", {
+                        style: S.breadcrumb,
+                        children: breadcrumbs.map((crumb, i)=>/*#__PURE__*/ _jsxs(React.Fragment, {
                                 children: [
-                                    /*#__PURE__*/ _jsx(Icon.Download, {}),
-                                    " Download All"
-                                ]
-                            }),
-                            canDelete && /*#__PURE__*/ _jsxs(Button, {
-                                buttonStyle: "primary",
-                                onClick: ()=>setDeleteModal({
-                                        type: 'bulk',
-                                        key: ''
+                                    i > 0 && /*#__PURE__*/ _jsx("span", {
+                                        style: S.breadcrumbSep,
+                                        children: /*#__PURE__*/ _jsx(Icon.ChevronRight, {})
                                     }),
-                                size: "small",
-                                //@ts-ignore
-                                style: {
-                                    borderColor: 'var(--theme-error-300, #fca5a5)',
-                                    color: 'var(--theme-error-500, #ef4444)'
-                                },
-                                children: [
-                                    /*#__PURE__*/ _jsx(Icon.Trash, {}),
-                                    " Delete All"
+                                    /*#__PURE__*/ _jsx("button", {
+                                        className: i < breadcrumbs.length - 1 ? 's3x-bc' : '',
+                                        disabled: i === breadcrumbs.length - 1,
+                                        onClick: ()=>setPrefix(crumb.prefix),
+                                        style: i === breadcrumbs.length - 1 ? S.breadcrumbActive : S.breadcrumbBtn,
+                                        children: crumb.label
+                                    })
                                 ]
-                            }),
-                            /*#__PURE__*/ _jsx(Button, {
-                                buttonStyle: "secondary",
-                                onClick: ()=>setSelected(new Set()),
-                                size: "small",
-                                children: /*#__PURE__*/ _jsx(Icon.X, {})
-                            })
-                        ]
+                            }, crumb.prefix))
+                    }),
+                    /*#__PURE__*/ _jsx("div", {
+                        children: someSelected && /*#__PURE__*/ _jsxs("div", {
+                            style: S.bulkBar,
+                            children: [
+                                /*#__PURE__*/ _jsxs("span", {
+                                    style: S.bulkCount,
+                                    children: [
+                                        selected.size,
+                                        " selected"
+                                    ]
+                                }),
+                                /*#__PURE__*/ _jsxs("div", {
+                                    style: {
+                                        display: 'flex',
+                                        gap: 12
+                                    },
+                                    children: [
+                                        canDownload && /*#__PURE__*/ _jsxs(Button, {
+                                            buttonStyle: "secondary",
+                                            onClick: downloadSelected,
+                                            size: "small",
+                                            children: [
+                                                /*#__PURE__*/ _jsx(Icon.Download, {}),
+                                                " Download All"
+                                            ]
+                                        }),
+                                        canDelete && /*#__PURE__*/ _jsxs(Button, {
+                                            buttonStyle: "primary",
+                                            onClick: ()=>setDeleteModal({
+                                                    type: 'bulk',
+                                                    key: ''
+                                                }),
+                                            size: "small",
+                                            //@ts-ignore
+                                            style: {
+                                                borderColor: 'var(--theme-error-300, #fca5a5)',
+                                                color: 'var(--theme-error-500, #ef4444)'
+                                            },
+                                            children: [
+                                                /*#__PURE__*/ _jsx(Icon.Trash, {}),
+                                                " Delete All"
+                                            ]
+                                        }),
+                                        /*#__PURE__*/ _jsx(Button, {
+                                            buttonStyle: "secondary",
+                                            onClick: ()=>setSelected(new Set()),
+                                            size: "small",
+                                            children: /*#__PURE__*/ _jsx(Icon.X, {})
+                                        })
+                                    ]
+                                })
+                            ]
+                        })
                     })
                 ]
             }),
@@ -1259,7 +1307,7 @@ export function S3ExplorerViewClient({ apiBasePath, options }) {
                 style: {
                     alignItems: 'flex-start',
                     display: 'flex',
-                    height: selected.size == 0 ? 512 : 452,
+                    height: 512,
                     gap: 16
                 },
                 children: [
@@ -1273,8 +1321,11 @@ export function S3ExplorerViewClient({ apiBasePath, options }) {
                             ...isDragging ? S.dropZoneActive : {},
                             flex: 1,
                             minWidth: 0,
+                            minHeight: 0,
                             width: '100%',
-                            height: '100%'
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column'
                         },
                         children: [
                             isDragging && /*#__PURE__*/ _jsxs("div", {
@@ -1308,7 +1359,9 @@ export function S3ExplorerViewClient({ apiBasePath, options }) {
                             }),
                             !loading && !error && viewMode === 'list' && /*#__PURE__*/ _jsxs("div", {
                                 style: {
-                                    flex: 1
+                                    flex: 1,
+                                    overflowY: 'auto',
+                                    minHeight: 0
                                 },
                                 children: [
                                     /*#__PURE__*/ _jsxs("div", {
@@ -1963,6 +2016,10 @@ export function S3ExplorerViewClient({ apiBasePath, options }) {
                         void uploadFiles(e.target.files);
                     }
                 },
+                accept: [
+                    ...options.allowedExtensions?.map((ext)=>`.${ext}`) || [],
+                    ...Array.isArray(options.allowedMimeTypes) ? options.allowedMimeTypes : []
+                ].join(','),
                 ref: fileInputRef,
                 style: {
                     display: 'none'
@@ -2067,16 +2124,29 @@ const S = {
         padding: '4px 6px',
         transition: 'background 0.1s, color 0.1s'
     },
-    breadcrumb: {
+    navbar: {
         alignItems: 'center',
-        background: 'var(--theme-elevation-50)',
-        border: '1px solid var(--theme-elevation-150)',
+        justifyContent: 'center',
         borderRadius: 8,
         display: 'flex',
         flexWrap: 'wrap',
+        flexDirection: 'row',
         fontSize: 13,
         gap: 4,
-        marginBottom: 16,
+        background: 'var(--theme-elevation-50)',
+        border: '1px solid var(--theme-elevation-150)',
+        marginBottom: 16
+    },
+    breadcrumb: {
+        alignItems: 'center',
+        borderRadius: 8,
+        display: 'flex',
+        flex: 1,
+        flexWrap: 'wrap',
+        fontSize: 13,
+        gap: 4,
+        height: 42,
+        // marginBottom: 16,
         padding: '8px 12px'
     },
     breadcrumbActive: {
@@ -2105,15 +2175,15 @@ const S = {
     },
     bulkBar: {
         alignItems: 'center',
-        background: 'var(--theme-elevation-50)',
-        border: '1px solid var(--theme-elevation-150)',
+        // background: 'var(--theme-elevation-50)',
+        // border: '1px solid var(--theme-elevation-150)',
         borderRadius: 8,
         display: 'flex',
-        gap: 12,
-        height: '48px',
+        gap: '24px',
+        height: '42px',
         justifyContent: 'space-between',
-        marginBottom: 12,
-        padding: '8px 16px'
+        // marginBottom: 12,
+        padding: '0px 16px'
     },
     bulkCount: {
         color: 'var(--theme-text)',
@@ -2274,7 +2344,9 @@ const S = {
         display: 'grid',
         gap: 12,
         gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-        padding: 16
+        padding: 16,
+        overflowY: 'auto',
+        minHeight: 0
     },
     header: {
         alignItems: 'center',
@@ -2498,7 +2570,7 @@ const S = {
         fontSize: 12,
         justifyContent: 'space-between',
         marginTop: 8,
-        padding: '6px 4px'
+        padding: '6px 14px'
     },
     tableHeader: {
         alignItems: 'center',
@@ -2508,7 +2580,10 @@ const S = {
         fontSize: 11,
         fontWeight: 700,
         letterSpacing: '0.05em',
-        padding: '8px 16px'
+        padding: '8px 16px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10
     },
     title: {
         alignItems: 'center',

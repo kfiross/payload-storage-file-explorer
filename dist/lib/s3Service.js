@@ -42,7 +42,7 @@ const calcFolderInfo = async (client, bucket, prefix, continuationToken)=>{
             }
         }
         continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
-    } while (continuationToken)
+    }while (continuationToken)
     return {
         lastModified,
         size: totalSize

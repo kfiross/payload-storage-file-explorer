@@ -15,27 +15,27 @@ import type { PayloadStorageFileExplorerConfig } from '../index.js';
  * GET /api/s3-explorer/list?prefix=some/path/&token=<continuationToken>
  * Returns { success, data: S3ListResult }
  */
-export declare function makeListHandler({ adapterOptions, ...options }: PayloadStorageFileExplorerConfig): PayloadHandler;
+export declare function makeListHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler;
 /**
  * POST /api/s3-explorer/upload
  * Body: { prefix, filename, contentType }
  * Returns { success, data: { url, fields, key } }  — client POSTs directly to S3.
  */
-export declare function makeUploadHandler({ adapterOptions, ...options }: PayloadStorageFileExplorerConfig): PayloadHandler;
+export declare function makeUploadHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler;
 /**
  * DELETE /api/s3-explorer/delete
  * Body: { key } for a single file  OR  { prefix } for an entire folder (recursive).
  * Returns { success, data: { key } | { deleted: number } }
  */
-export declare function makeDeleteHandler({ adapterOptions, ...options }: PayloadStorageFileExplorerConfig): PayloadHandler;
+export declare function makeDeleteHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler;
 /**
  * POST /api/s3-explorer/folder
  * Body: { prefix, name }
  * Returns { success, data: { folderKey } }
  */
-export declare function makeFolderHandler({ adapterOptions, ...options }: PayloadStorageFileExplorerConfig): PayloadHandler;
+export declare function makeFolderHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler;
 /**
  * GET /api/s3-explorer/download?key=some/path/file.jpg
  * Returns { success, data: { url, key } }  — presigned GET URL.
  */
-export declare function makeDownloadHandler({ adapterOptions, ...options }: PayloadStorageFileExplorerConfig): PayloadHandler;
+export declare function makeDownloadHandler(options: PayloadStorageFileExplorerConfig): PayloadHandler;
