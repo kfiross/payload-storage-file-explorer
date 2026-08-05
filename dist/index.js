@@ -6,23 +6,6 @@ export const payloadStorageFileExplorer = (pluginOptions)=>{
         if (!config.collections) {
             config.collections = [];
         }
-        // if (pluginOptions.collections) {
-        //   for (const collectionSlug in pluginOptions.collections) {
-        //     const collection = config.collections.find(
-        //       (collection) => collection.slug === collectionSlug,
-        //     )
-        //
-        //     if (collection) {
-        //       collection.fields.push({
-        //         name: 'addedByPlugin',
-        //         type: 'text',
-        //         admin: {
-        //           position: 'sidebar',
-        //         },
-        //       })
-        //     }
-        //   }
-        // }
         /**
      * If the plugin is disabled, we still want to keep added collections/fields so the database schema is consistent which is important for migrations.
      * If your plugin heavily modifies the database schema, you may want to remove this property.

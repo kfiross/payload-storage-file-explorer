@@ -16,20 +16,12 @@
   "compilerOptions": {
     "baseUrl": "./",
     "paths": {
-      "@payload-config": [
-        "./payload.config.ts"
-      ],
-      "payload-storage-file-explorer": [
-        "../src/index.ts"
-      ],
-      "payload-storage-file-explorer/client": [
-        "../src/exports/client.ts"
-      ],
-      "payload-storage-file-explorer/rsc": [
-        "../src/exports/rsc.ts"
-      ]
+      "@payload-config": ["./payload.config.ts"],
+      "@kfiross44/payload-storage-file-explorer": ["../src/index.ts"],
+      "@kfiross44/payload-storage-file-explorer/client": ["../src/exports/client.ts"],
+      "@kfiross44/payload-storage-file-explorer/rsc": ["../src/exports/rsc.ts"]
     },
     "noEmit": true,
-    "emitDeclarationOnly": false,
+    "emitDeclarationOnly": false
   }
 }

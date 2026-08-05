@@ -9,7 +9,6 @@ import React, {
   useState,
 } from 'react'
 
-// Payload UI primitives — available in @payloadcms/ui
 import {
   Button,
   Drawer,

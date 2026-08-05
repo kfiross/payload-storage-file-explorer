@@ -4,9 +4,11 @@ export type StorageFileExplorerAdapterOptions<T extends string = string> = {
   storageType: T
 }
 
-export type StorageAdapterOptions = S3ExplorerPluginOptions | VercelBlobExplorerOptions
+export type StorageAdapterOptions = 
+  S3ExplorerPluginOptions
+  | VercelBlobExplorerOptions
+  | BunnyStorageExplorerOptions
 
-type VercelBlobExplorerOptions = StorageFileExplorerAdapterOptions<'vercel'>
 
 export interface S3ExplorerPluginOptions extends StorageFileExplorerAdapterOptions<'s3'> {
   /**
@@ -48,6 +50,29 @@ export interface S3ExplorerPluginOptions extends StorageFileExplorerAdapterOptio
   storageType: 's3'
 }
 
+export interface VercelBlobExplorerOptions extends StorageFileExplorerAdapterOptions<'vercel'> {
+  storageType: 'vercel'
+}
+
+export interface BunnyStorageExplorerOptions extends StorageFileExplorerAdapterOptions<'bunny'> {
+  storageType: 'bunny'
+
+  credentials?: {
+    apiKey: string
+    hostname: string
+    zoneName: string
+  }
+
+  /**
+   * Storage region code ('uk', 'ny', 'la', 'sg', 'se', 'br', 'jh', 'syd')
+   */
+  region?: string
+
+
+  uploadTimeout?: number
+}
+
+// S3-specific types 
 export interface S3Object {
   contentType?: string
   etag?: string
@@ -81,12 +106,15 @@ export interface PresignedUploadResult {
   url: string
 }
 
+// General types
 export interface ApiResponse<T = unknown> {
   data?: T
   error?: string
   success: boolean
 }
 export {}
+
+// Payload-based types
 
 export type ExplorerAccessArgs = {
   key?: string
